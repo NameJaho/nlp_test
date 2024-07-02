@@ -1,0 +1,16 @@
+venv
+__pycache__
+.idea
+.DS_Store
+output
+local
+models
+damo
+uie-base
+uie_base_pytorch
+pyrightconfig.json
+utils
+requirements.txt
+fastapi
+config.ini
+checkpoint
