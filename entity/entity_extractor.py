@@ -19,7 +19,7 @@ class EntityExtractor:
             print("请求接口失败")
             return ""
         else:
-            result = res.json()['input']['entities']
+            result = res.json()['data']['entities']
         return result
 
 
