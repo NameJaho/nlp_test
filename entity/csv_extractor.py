@@ -7,7 +7,7 @@ class CSVExtractor:
         self.entity_extractor = EntityExtractor()
 
     def process(self, input_file, output_file):
-        df = pd.read_excel(input_file)
+        df = pd.read_csv(input_file)
         df['len'] = df['搜索词'].apply(lambda x: True if len(str(x)) >= 6 else False)
         df['words_by_api'] = df[df['len']]['搜索词'].apply(self.entity_extractor.extract)
         df.fillna('', inplace=True)
