@@ -1,7 +1,5 @@
 import pandas as pd
 
-INPUT_FILE = 'input/test_data/0701_2000_entity_diff.csv'
-OUTPUT_FILE = 'input/res_data/0701_2000_diff_entity.csv'
 SCHEMA = ['公司', '行业', '产品', '技术', '地区', '人物', '疾病', '日期']
 
 
@@ -37,9 +35,9 @@ class DiffGen:
         diff_arr = self.diff_dict_format(compare_tag_dict)
         return diff_arr
 
-    def process(self):
+    def process(self, input_file, output_file):
         # 原始文件路径
-        df = pd.read_csv(INPUT_FILE, sep='\t')
+        df = pd.read_csv(input_file, sep='\t')
         df = df[df['len'] == True]
         df['index'] = [i for i in range(len(df))]
 
@@ -59,4 +57,11 @@ class DiffGen:
 
         # 输出对比结果
         res_df = pd.merge(df, diff_df, on='index')
-        res_df.to_csv(OUTPUT_FILE, index=False, encoding='utf-8-sig')
+        res_df.to_csv(output_file, index=False, encoding='utf-8-sig')
+
+
+if __name__ == '__main__':
+    diff_gen = DiffGen()
+    _input_file = 'input/qc_query_train_extract_0525-0623.csv'
+    _output_file = 'output/qc_query_train_diff_0525-0623.csv'
+    diff_gen.process(input_file=_input_file, output_file=_output_file)
