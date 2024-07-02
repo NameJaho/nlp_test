@@ -62,6 +62,6 @@ class DiffGen:
 
 if __name__ == '__main__':
     diff_gen = DiffGen()
-    _input_file = 'input/qc_query_train_extract_0525-0623.csv'
-    _output_file = 'output/qc_query_train_diff_0525-0623.csv'
+    _input_file = './input/qc_query_train_extract_0525-0623.csv'
+    _output_file = './output/qc_query_train_diff_0525-0623.csv'
     diff_gen.process(input_file=_input_file, output_file=_output_file)
