@@ -24,7 +24,7 @@ class EntityExtractor:
 
 
 if __name__ == "__main__":
-    text = "喜茶快要上市了"
+    text = "抖音电商中国"
     entity_extractor = EntityExtractor()
     res = entity_extractor.extract(text)
     print(res)
