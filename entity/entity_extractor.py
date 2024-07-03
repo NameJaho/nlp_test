@@ -1,3 +1,4 @@
+# import jieba
 import requests
 import json
 
@@ -23,9 +24,23 @@ class EntityExtractor:
                 return result
         return ''
 
+    @staticmethod
+    def format(result):
+        ls = []
+        for key, value in result.items():
+            if key in ['疾病', '地区', '日期']:
+                continue
+            ls.append([i for i in value.keys()][0]) if value not in ls else ''
+        # cut_list = [jieba.lcut(i) for i in ls ]
+        # merged_list = [item for sublist in cut_list for item in sublist]
+        # list(set(merged_list))
+        return list(set(ls))
+
 
 if __name__ == "__main__":
-    text = "抖音电商中国"
+    text = "森马 vs 海澜之家"
     entity_extractor = EntityExtractor()
     res = entity_extractor.extract(text)
-    print(res)
+    format_ = entity_extractor.format(res)
+    # print(res)
+    print(format_)
