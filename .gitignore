@@ -14,3 +14,4 @@ requirements.txt
 fastapi
 config.ini
 checkpoint
+.pytest_cache

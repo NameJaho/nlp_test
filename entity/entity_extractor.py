@@ -13,14 +13,15 @@ class EntityExtractor:
         headers = {"Content-Type": "application/json"}
 
         data = {"query": texts}
-        try:
-            res = requests.post(url=url, headers=headers, data=json.dumps(data))
-        except:
-            print("请求接口失败")
-            return ""
-        else:
-            result = res.json()['data']['entities']
-        return result
+        for _ in range(3):
+            try:
+                res = requests.post(url=url, headers=headers, data=json.dumps(data), timeout=10)
+            except:
+                print("请求接口失败")
+            else:
+                result = res.json()['data']['entities']
+                return result
+        return ''
 
 
 if __name__ == "__main__":
