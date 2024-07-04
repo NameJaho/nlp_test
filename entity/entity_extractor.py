@@ -46,9 +46,10 @@ class EntityExtractor:
 
 
 if __name__ == "__main__":
-    text = "森马 vs 海澜之家"
+    text = "婴幼儿即食米糊"
     entity_extractor = EntityExtractor()
     res = entity_extractor.extract(text)
+    print(f'entity:{res}')
     format_ = entity_extractor.cut_entity(res)
     # print(res)
     print(format_)

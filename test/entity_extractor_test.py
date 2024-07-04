@@ -40,9 +40,7 @@ class EntityExtractorTestCase(unittest.TestCase):
                 result = entity.extract(text)
                 result = entity.format(result)  # strict
                 o_result = result
-                if mode == 'strict':
-                    pass
-                else:
+                if mode == 'Loose':
                     result = entity.cut_entity(result)
                     expected_output = entity.cut_entity(expected_output)
 
@@ -89,10 +87,11 @@ class CustomTestResult(unittest.TextTestResult):
         total = len(df)
         self.parse_errors()
         successes = total - sum(self.entity_recognition_errors.values())
+
         msg = dedent(f"""
         Total tests: {total}
         Success: {successes} 
-        Strict Precision Rate: {(successes / total) * 100:.2f}%
+        {mode} Precision Rate: {(successes / total) * 100:.2f}%
         Error Items:
         """)
         # Entity Recognition Errors: {self.entity_recognition_errors}
@@ -113,8 +112,8 @@ class CustomTestRunner(unittest.TextTestRunner):
 
 
 if __name__ == '__main__':
-    # mode = 'loose'
-    mode = 'strict'
+    mode = 'Loose'
+    # mode = 'Strict'
     suite = unittest.TestLoader().loadTestsFromTestCase(EntityExtractorTestCase)
     runner = CustomTestRunner(verbosity=2)
     runner.run(suite)
