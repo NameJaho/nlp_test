@@ -7,13 +7,12 @@ from textwrap import dedent
 import pandas as pd
 from loguru import logger
 
-from entity.entity_extractor import EntityExtractor
-
 sys.path.append('..')
+from entity.entity_extractor import EntityExtractor
 
 entity = EntityExtractor()
 # 测试数据
-df = pd.read_csv('test/data/query_validation_label_v1.csv')
+df = pd.read_csv('./data/query_validation_label_v1.csv')
 
 
 # df = df[:10]

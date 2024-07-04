@@ -6,8 +6,8 @@ import unicodedata
 
 import jieba
 import requests
-# import torch
-# import pyhocon
+import torch
+import pyhocon
 import pkg_resources
 
 from loguru import logger

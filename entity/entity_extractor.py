@@ -1,13 +1,20 @@
 # import jieba
 import requests
 import json
-
+import os
+from tools.utils import get_root_path, get_uie_device, convert_entity_format
+from uie.uie_predictor import UIEPredictor
 from word_splitter.word_cutter import WordCutter
+
+SCHEMA = ['公司', '行业', '产品', '技术', '地区', '人物', '疾病', '日期', '产业']
+MODEL_PATH = os.path.join(get_root_path(), 'models/entity/model_best')
 
 
 class EntityExtractor:
     def __init__(self):
         self.wc = WordCutter()
+        self.device = get_uie_device()
+        self.ie = None
 
     @staticmethod
     def extract(texts):
@@ -25,6 +32,13 @@ class EntityExtractor:
                 result = res.json()['data']['entities']
                 return result
         return ''
+
+    def extract_local(self, text):
+        if not self.ie:
+            self.ie = UIEPredictor(model='uie-base', task_path=MODEL_PATH, schema=SCHEMA, device=self.device)
+
+        entities = self.ie(text)
+        return convert_entity_format(entities)
 
     @staticmethod
     def format(result):
@@ -45,7 +59,11 @@ class EntityExtractor:
 
 
 if __name__ == "__main__":
-    text = "赛百味 vs 麦当劳"
+    text = "婴幼儿即食米糊"
+    #text = "森马 vs 海澜之家"
+    #text = "友望云朵洗地机"
+    text = '深圳市晶存科技是nvidia cloud partner吗'
+
     entity_extractor = EntityExtractor()
     res = entity_extractor.extract(text)
     print(f'entity:{res}')
