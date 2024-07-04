@@ -35,15 +35,20 @@ class EntityExtractorTestCase(unittest.TestCase):
         # for text, expected_output in test_data:
         for index, value in self.df.iterrows():
             id_, text, expected_output = value['t'], str(value['搜索词']), eval(value['intent_who'])
+            o_expected = expected_output
             with self.subTest(text=text):
                 result = entity.extract(text)
                 result = entity.format(result)  # strict
-                # result = entity.cut_entity(result) # loose
+                o_result = result
+                if mode == 'Loose':
+                    result = entity.cut_entity(result)
+                    expected_output = entity.cut_entity(expected_output)
+
                 msg = {
                     # "error": "intent who error",
                     "text": text,
-                    "result": result,
-                    "expected_output": expected_output,
+                    "result": o_result,
+                    "expected_output": o_expected,
                     "id_": id_
                 }
                 try:
@@ -82,10 +87,11 @@ class CustomTestResult(unittest.TextTestResult):
         total = len(df)
         self.parse_errors()
         successes = total - sum(self.entity_recognition_errors.values())
+
         msg = dedent(f"""
         Total tests: {total}
         Success: {successes} 
-        Strict Precision Rate: {(successes / total) * 100:.2f}%
+        {mode} Precision Rate: {(successes / total) * 100:.2f}%
         Error Items:
         """)
         # Entity Recognition Errors: {self.entity_recognition_errors}
@@ -106,6 +112,8 @@ class CustomTestRunner(unittest.TextTestRunner):
 
 
 if __name__ == '__main__':
+    mode = 'Loose'
+    # mode = 'Strict'
     suite = unittest.TestLoader().loadTestsFromTestCase(EntityExtractorTestCase)
     runner = CustomTestRunner(verbosity=2)
     runner.run(suite)
