@@ -18,7 +18,7 @@ class WordCutter:
         # TODO: 标点符号替换为空格，但有些特殊字符需保留，如-
         # text = re.sub('\W*', ' ', ''.join(text))
         words = jieba.lcut(text)
-        return [i for i in words if i ]
+        return [i for i in words if i!=' ' ]
 
 
 if __name__ == '__main__':
