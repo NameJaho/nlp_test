@@ -32,24 +32,23 @@ class EntityExtractor:
         for key, value in result.items():
             if key in ['疾病', '地区', '日期']:
                 continue
-            ls.append([i for i in value.keys()][0]) if value not in ls else ''
-        # cut_list = [jieba.lcut(i) for i in ls ]
-        # merged_list = [item for sublist in cut_list for item in sublist]
-        # list(set(merged_list))
-        return list(set(ls))
+            for i in value.keys():
+                if i not in ls:
+                    ls.append(i)
+        return list(set(ls ))
 
     def cut_entity(self, ls):
         cut_list = [self.wc.cut(i) for i in ls]
-        merged_list = [item for sublist in cut_list for item in sublist ]
+        merged_list = [item for sublist in cut_list for item in sublist]
 
         return list(set(merged_list))
 
 
 if __name__ == "__main__":
-    text = "婴幼儿即食米糊"
+    text = "赛百味 vs 麦当劳"
     entity_extractor = EntityExtractor()
     res = entity_extractor.extract(text)
     print(f'entity:{res}')
-    format_ = entity_extractor.cut_entity(res)
+    format_ = entity_extractor.format(res)
     # print(res)
     print(format_)
