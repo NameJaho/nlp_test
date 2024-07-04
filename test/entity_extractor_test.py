@@ -14,7 +14,9 @@ sys.path.append('..')
 entity = EntityExtractor()
 # 测试数据
 df = pd.read_csv('test/data/query_validation_label_v1.csv')
-df = df[:10]
+
+
+# df = df[:10]
 
 
 class EntityRecognitionError(Exception):
@@ -35,16 +37,17 @@ class EntityExtractorTestCase(unittest.TestCase):
             id_, text, expected_output = value['t'], str(value['搜索词']), eval(value['intent_who'])
             with self.subTest(text=text):
                 result = entity.extract(text)
-                format_result = entity.format(result)
+                result = entity.format(result)  # strict
+                # result = entity.cut_entity(result) # loose
                 msg = {
                     # "error": "intent who error",
                     "text": text,
-                    "result": format_result,
+                    "result": result,
                     "expected_output": expected_output,
                     "id_": id_
                 }
                 try:
-                    self.assertEqual(sorted(format_result), sorted(expected_output))
+                    self.assertEqual(sorted(result), sorted(expected_output))
                 except AssertionError:
                     raise EntityRecognitionError(msg)
 
