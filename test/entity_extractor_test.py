@@ -1,3 +1,4 @@
+import re
 import unittest
 
 import sys
@@ -6,27 +7,15 @@ from textwrap import dedent
 import pandas as pd
 from loguru import logger
 
-from entity.entity_extractor import EntityExtractor
-
 sys.path.append('..')
-# from metadata.entity_extractor import EntityExtractor
+from entity.entity_extractor import EntityExtractor
 
 entity = EntityExtractor()
 # 测试数据
-test_data = [
-    # ("阿里巴巴在大模型领域占据领先地位", {'公司': {'阿里巴巴': 1}, '技术': {'大模k型': 1}}),
-    # ("喜茶快要上市了", {'公司': {'喜茶': 1}}),
+df = pd.read_csv('./data/query_validation_label_v1.csv')
 
-    ("手游市场增长，虎牙财报亮眼", {'公司': {'虎d牙': 1}, '行业': {'手d游': 1}}),
-    ("手游市场增长，虎牙财报亮眼", {'公司': {'虎d牙': 1}, '行业': {'手游': 1}}),
-    ("手游市场增长，虎牙财报亮眼", {'公司': {'虎牙': 1}, '行业': {'手d游': 1}}),
-    ("手游市场增长，虎牙财报亮眼", {'公司': {'虎牙': 1}, '行业': {'手游': 1}}),
-    ("手游市场增长，虎牙财报亮眼", {'公司': {'虎牙': 1}, '行业': {'手游': 1}}),
-    ("手游市场增长，虎牙财报亮眼", {'公司': {'虎牙': 1}, '行业': {'手游': 1}}),
-    ("手游市场增长，虎牙财报亮眼", {'公司': {'虎牙': 1}, '行业': {'手游': 1}}),
-    ("手游市场增长，虎牙财报亮眼", {'公司': {'虎牙': 1}, '行业': {'手游': 1}}),
-    ("手游市场增长，虎牙财报亮眼", {'公司': {'虎牙': 1}, '行业': {'手游': 1}}),
-]
+
+# df = df[:10]
 
 
 class EntityRecognitionError(Exception):
@@ -38,30 +27,32 @@ class EntityRecognitionError(Exception):
 
 
 class EntityExtractorTestCase(unittest.TestCase):
+    def setUp(self):
+        self.df = df
 
     def test_entity_extractor(self):
-        for text, expected_output in test_data:
+        # for text, expected_output in test_data:
+        for index, value in self.df.iterrows():
+            id_, text, expected_output = value['t'], str(value['搜索词']), eval(value['intent_who'])
+            o_expected = expected_output
             with self.subTest(text=text):
                 result = entity.extract(text)
-                industry_correct = expected_output.get('行业', {}) == result.get('行业', {})
-                company_correct = expected_output.get('公司', {}) == result.get('公司', {})
+                result = entity.format(result)  # strict
+                o_result = result
+                if mode == 'Loose':
+                    result = entity.cut_entity(result)
+                    expected_output = entity.cut_entity(expected_output)
+
                 msg = {
-                    "error": "",
+                    # "error": "intent who error",
                     "text": text,
-                    "result": result,
-                    "expected_output": expected_output
+                    "result": o_result,
+                    "expected_output": o_expected,
+                    "id_": id_
                 }
                 try:
-                    self.assertEqual(result, expected_output)
+                    self.assertEqual(sorted(result), sorted(expected_output))
                 except AssertionError:
-                    if not industry_correct and not company_correct:
-                        msg['error'] = 'BothError'
-                    elif not industry_correct:
-                        msg['error'] = 'IndustryError'
-                    elif not company_correct:
-                        msg['error'] = 'CompanyError'
-                    else:
-                        msg['error'] = 'UnKnownError'
                     raise EntityRecognitionError(msg)
 
 
@@ -69,7 +60,8 @@ class CustomTestResult(unittest.TextTestResult):
     def __init__(self, stream, descriptions, verbosity):
         super().__init__(stream, descriptions, verbosity)
         self.success_count = 0
-        self.entity_recognition_errors = {i: 0 for i in ['IndustryError', 'CompanyError', 'BothError', 'UnKnownError']}
+        self.entity_recognition_errors = {'EntityRecognitionError': 0}
+        self.error_entity = []
 
     def addSuccess(self, test):
         super().addSuccess(test)
@@ -79,29 +71,31 @@ class CustomTestResult(unittest.TextTestResult):
 
     def parse_errors(self):
         for index, error in self.errors:
-            print(f'\n' + '* ' * 20)
-            print(index)
-            print(error)
+            # print(f'\n' + '* ' * 20)
+            # print(index)
+            # print(error)
             for error_type in self.entity_recognition_errors.keys():
                 if error_type in str(error):
                     self.entity_recognition_errors[error_type] += 1
-            print(f'\n' + '* ' * 20)
+            entity_error_msg = re.findall('EntityRecognitionError: (.*?\n)', error)[0]
+            # print(entity_error_msg)
+            self.error_entity.append(entity_error_msg)
+            # print(f'\n' + '* ' * 20)
 
     def print_final_result(self):
-        total = len(test_data)
+        total = len(df)
         self.parse_errors()
-
         successes = total - sum(self.entity_recognition_errors.values())
-        print(f"Total tests: {total}")
-        print(f"Success: {successes}")
-        print(f"Entity Recognition Errors: {self.entity_recognition_errors}")  # Print new error type
-        print(f"Success rate: {(successes / total) * 100:.2f}%")
+
         msg = dedent(f"""
         Total tests: {total}
-        Success: {successes}
-        Entity Recognition Errors: {self.entity_recognition_errors}
-        Success rate: {(successes / total) * 100:.2f}%
+        Success: {successes} 
+        {mode} Precision Rate: {(successes / total) * 100:.2f}%
+        Error Items:
         """)
+        # Entity Recognition Errors: {self.entity_recognition_errors}
+        msg += ''.join([i for i in self.error_entity])
+        # print(msg)
         logger.info(msg)
 
 
@@ -116,11 +110,9 @@ class CustomTestRunner(unittest.TextTestRunner):
         return result
 
 
-def init_dataset():
-    df = pd.read_csv('')
-
-
 if __name__ == '__main__':
+    mode = 'Loose'
+    # mode = 'Strict'
     suite = unittest.TestLoader().loadTestsFromTestCase(EntityExtractorTestCase)
     runner = CustomTestRunner(verbosity=2)
     runner.run(suite)
