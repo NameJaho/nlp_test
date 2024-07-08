@@ -17,8 +17,11 @@ class EntityExtractor:
         self.ie = None
 
     @staticmethod
-    def extract(texts):
-        url = "http://183.6.28.97:7766/entity_extractor"
+    def extract(texts, version='online'):
+        if version == 'dev':
+            url = "http://183.6.28.97:7766/entity_extractor_test"
+        else:
+            url = "http://183.6.28.97:7766/entity_extractor"
 
         headers = {"Content-Type": "application/json"}
 
@@ -57,25 +60,6 @@ class EntityExtractor:
 
         return list(set(merged_list))
 
-    @staticmethod
-    def extract_test(texts):
-        url = "http://183.6.28.97:7766/entity_extractor_test"
-
-        headers = {"Content-Type": "application/json"}
-
-        data = {"query": texts}
-        for _ in range(3):
-            try:
-                res = requests.post(url=url, headers=headers, data=json.dumps(data), timeout=10)
-            except:
-                print("请求接口失败")
-            else:
-                print(res.json())
-
-                result = res.json()['data']['entities']
-                return result
-        return ''
-
 
 if __name__ == "__main__":
     text = "婴幼儿即食米糊"
@@ -89,5 +73,5 @@ if __name__ == "__main__":
     format_ = entity_extractor.format(res)
     # print(res)
     print(format_)
-    res = entity_extractor.extract_test(text)
+    res = entity_extractor.extract(text, version='online')
     print(res)

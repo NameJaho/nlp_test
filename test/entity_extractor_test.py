@@ -36,10 +36,7 @@ class EntityExtractorTestCase(unittest.TestCase):
             id_, text, expected_output = value['t'], str(value['搜索词']), eval(value['intent_who'])
             o_expected = expected_output
             with self.subTest(text=text):
-                if version == 'online':
-                    result = entity.extract(text)
-                else:
-                    result = entity.extract_test(text)
+                result = entity.extract(text, version=version)
                 result = entity.format(result)  # strict
                 o_result = result
                 if mode == 'Loose':
