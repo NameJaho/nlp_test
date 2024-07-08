@@ -17,8 +17,11 @@ class EntityExtractor:
         self.ie = None
 
     @staticmethod
-    def extract(texts):
-        url = "http://183.6.28.97:7766/entity_extractor"
+    def extract(texts, version='online'):
+        if version == 'dev':
+            url = "http://183.6.28.97:7766/entity_extractor_test"
+        else:
+            url = "http://183.6.28.97:7766/entity_extractor"
 
         headers = {"Content-Type": "application/json"}
 
@@ -49,7 +52,7 @@ class EntityExtractor:
             for i in value.keys():
                 if i not in ls:
                     ls.append(i)
-        return list(set(ls ))
+        return list(set(ls))
 
     def cut_entity(self, ls):
         cut_list = [self.wc.cut(i) for i in ls]
@@ -60,8 +63,8 @@ class EntityExtractor:
 
 if __name__ == "__main__":
     text = "婴幼儿即食米糊"
-    #text = "森马 vs 海澜之家"
-    #text = "友望云朵洗地机"
+    # text = "森马 vs 海澜之家"
+    # text = "友望云朵洗地机"
     text = '深圳市晶存科技是nvidia cloud partner吗'
 
     entity_extractor = EntityExtractor()
@@ -70,3 +73,5 @@ if __name__ == "__main__":
     format_ = entity_extractor.format(res)
     # print(res)
     print(format_)
+    res = entity_extractor.extract(text, version='online')
+    print(res)
