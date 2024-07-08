@@ -49,7 +49,7 @@ class EntityExtractor:
             for i in value.keys():
                 if i not in ls:
                     ls.append(i)
-        return list(set(ls ))
+        return list(set(ls))
 
     def cut_entity(self, ls):
         cut_list = [self.wc.cut(i) for i in ls]
@@ -57,11 +57,30 @@ class EntityExtractor:
 
         return list(set(merged_list))
 
+    @staticmethod
+    def extract_test(texts):
+        url = "http://183.6.28.97:7766/entity_extractor_test"
+
+        headers = {"Content-Type": "application/json"}
+
+        data = {"query": texts}
+        for _ in range(3):
+            try:
+                res = requests.post(url=url, headers=headers, data=json.dumps(data), timeout=10)
+            except:
+                print("请求接口失败")
+            else:
+                print(res.json())
+
+                result = res.json()['data']['entities']
+                return result
+        return ''
+
 
 if __name__ == "__main__":
     text = "婴幼儿即食米糊"
-    #text = "森马 vs 海澜之家"
-    #text = "友望云朵洗地机"
+    # text = "森马 vs 海澜之家"
+    # text = "友望云朵洗地机"
     text = '深圳市晶存科技是nvidia cloud partner吗'
 
     entity_extractor = EntityExtractor()
@@ -70,3 +89,5 @@ if __name__ == "__main__":
     format_ = entity_extractor.format(res)
     # print(res)
     print(format_)
+    res = entity_extractor.extract_test(text)
+    print(res)
