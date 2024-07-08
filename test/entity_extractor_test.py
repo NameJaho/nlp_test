@@ -36,7 +36,10 @@ class EntityExtractorTestCase(unittest.TestCase):
             id_, text, expected_output = value['t'], str(value['搜索词']), eval(value['intent_who'])
             o_expected = expected_output
             with self.subTest(text=text):
-                result = entity.extract(text)
+                if version == 'online':
+                    result = entity.extract(text)
+                else:
+                    result = entity.extract_test(text)
                 result = entity.format(result)  # strict
                 o_result = result
                 if mode == 'Loose':
@@ -112,6 +115,13 @@ class CustomTestRunner(unittest.TextTestRunner):
 
 if __name__ == '__main__':
     mode = 'Loose'
+    """
+        线上 有两个模型
+        dev 为 最新训练的实体抽取模型 但不是发布模型
+        online 为 已发布模型
+    """
+    version = 'dev'  # or online
+
     # mode = 'Strict'
     suite = unittest.TestLoader().loadTestsFromTestCase(EntityExtractorTestCase)
     runner = CustomTestRunner(verbosity=2)
