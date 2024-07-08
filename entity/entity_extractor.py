@@ -23,9 +23,28 @@ class EntityExtractor:
                 return result
         return ''
 
+    @staticmethod
+    def extract_test(texts):
+        url = "http://183.6.28.97:7766/entity_extractor_test"
+
+        headers = {"Content-Type": "application/json"}
+
+        data = {"query": texts}
+        for _ in range(3):
+            try:
+                res = requests.post(url=url, headers=headers, data=json.dumps(data), timeout=10)
+            except:
+                print("请求接口失败")
+            else:
+                print(res.json())
+
+                result = res.json()['data']['entities']
+                return result
+        return ''
+
 
 if __name__ == "__main__":
     text = "抖音电商中国"
     entity_extractor = EntityExtractor()
-    res = entity_extractor.extract(text)
+    res = entity_extractor.extract_test(text)
     print(res)
