@@ -49,7 +49,7 @@ class EntityExtractor:
             for i in value.keys():
                 if i not in ls:
                     ls.append(i)
-        return list(set(ls ))
+        return list(set(ls))
 
     def cut_entity(self, ls):
         cut_list = [self.wc.cut(i) for i in ls]
@@ -79,8 +79,8 @@ class EntityExtractor:
 
 if __name__ == "__main__":
     text = "婴幼儿即食米糊"
-    #text = "森马 vs 海澜之家"
-    #text = "友望云朵洗地机"
+    # text = "森马 vs 海澜之家"
+    # text = "友望云朵洗地机"
     text = '深圳市晶存科技是nvidia cloud partner吗'
 
     entity_extractor = EntityExtractor()
