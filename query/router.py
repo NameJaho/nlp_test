@@ -23,6 +23,10 @@ class Router:
 
     @staticmethod
     def remove_when(text):
+        remove_items = convert_time(text, test=True, fast=True)
+        if remove_items:
+            text_to_remove = str(remove_items[0]['text'])
+            text = text.replace(text_to_remove, '')
         return text
 
     @staticmethod
@@ -63,5 +67,6 @@ if __name__ == "__main__":
     # print(f'{n_words}')
 
     print(convert_time(_text, test=True, fast=True))
-    synonyms, related = router.search_for_synonyms('AI', 'prefix')
-    print(synonyms, related)
+    print(router.remove_when(_text))
+    # synonyms, related = router.search_for_synonyms('AI', 'prefix')
+    # print(synonyms, related)

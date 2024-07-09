@@ -15,8 +15,9 @@ SYSTEM_PROMPT_QWEN = """
 
 root_path = get_root_path()
 file_name = 'similarity_300_labels_validation.csv'
-
+outputfile_name='similarity_300_labels_validation_test_output.csv'
 file_path = os.path.join(root_path, 'test/data', file_name)
+outputfile_path=os.path.join(root_path, 'test/output', outputfile_name)
 prompt_path = os.path.join(root_path, 'llms/prompt', 'similar_judge_deepseek.txt')
 
 df = pd.read_csv(file_path)
@@ -34,11 +35,16 @@ def score(query, doc):
     user_prompt = build_user_prompt(prompt_template, query, doc)
     response = llm.generate(user_prompt, system_prompt=SYSTEM_PROMPT_DEEPSEEK)
     print(response)
+    score = int(response.split(": ")[1].split(",")[0])
+    return(score)
 
 
-df_head = df.iloc[14:22]
+# df_head = df.iloc[14:22]
 # iterate df_head
-for index, row in df_head.iterrows():
+for index, row in df.iterrows():
     query = row['sentence1']
     doc = row['sentence2']
-    score(query, doc)
+    if pd.notnull(query) and pd.notnull(doc):
+        test_score = score(query, doc)
+        df.at[index,'test_score'] = test_score
+df.to_csv(outputfile_path)
