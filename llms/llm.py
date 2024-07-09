@@ -9,8 +9,7 @@ from loguru import logger
 
 from llms.deepseek import DeepSeek
 
-# from llms.qwen import Qwen
-# from llms.qwen2 import Qwen2
+from llms.qwen_v2 import Qwen2
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -21,13 +20,14 @@ class ChatLlm:
         self.config.read(ini, encoding="utf-8")
         self.llm = self.init_llm(llm)
 
-    def init_llm(self, llm_type):
-        # if llm_type.startswith("qwen2"):
-        #     llm = Qwen2()
+    @staticmethod
+    def init_llm(llm_type):
+        if llm_type.startswith("qwen2"):
+            llm = Qwen2()
         # elif llm_type.startswith("qwen"):
         #     key = self.config.get(llm_type, "appid")
         #     llm = Qwen(key)
-        if llm_type.startswith("ds"):
+        elif llm_type.startswith("ds"):
             llm = DeepSeek()
         else:
             raise Exception("llms type error")
