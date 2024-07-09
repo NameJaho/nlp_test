@@ -1,2 +1,4 @@
-word, position, synonyms, related
-数字化, both, 信息化|数智化, 数据｜BI|AI
+word,position,synonyms,related
+数字化,both,"信息化,数智化","数据,BI,AI"
+竞争,suffix,"对抗,争夺","市场份额,对手"
+ai,prefix,"人工智能","自动驾驶,图像识别"
