@@ -11,7 +11,7 @@ sys.path.append('..')
 from entity.entity_extractor import EntityExtractor
 
 entity = EntityExtractor()
-# 测试数据
+# 测试数据 #hhh
 df = pd.read_csv('./data/query_validation_label_v1.csv')
 
 
