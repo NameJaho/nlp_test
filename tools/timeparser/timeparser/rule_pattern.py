@@ -298,7 +298,7 @@ TIME_CHAR_STRING = ''.join(
 # 时间 NER 字符规则
 TIME_CHAR_STRING_FAST = ''.join(
     [
-     r'([1023589647一三季第度二四月])+',
+     r'([1023589647一三季第度二四月年])+',
      ])
 # TIME_CHAR_STRING = r'([第年季度上下半一二三四十3589647102近来\~\—～·\-至]+)'
 FAKE_POSITIVE_START_STRING = r'[起到至以开－\—\-\~～]'  # 此字符串不可作为时间串的开始， `以来|开始` 为取首字
