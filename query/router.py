@@ -1,16 +1,19 @@
-import sys
-project_root ='F:\\inter\\nlp_test'
-sys.path.append(project_root)         
 from word_splitter.word_cutter import WordCutter
 from entity.entity_extractor import EntityExtractor
 from tools.timeparser.convert_time import convert_time
+from tools.utils import get_root_path
 import pandas as pd
 import os
-from tools.utils import get_root_path
+
+INTENT_DICT_FILE_NAME = 'intent_dict.csv'
+
+
 class Router:
     def __init__(self):
         self.word_cutter = WordCutter()
         self.entity_extractor = EntityExtractor()
+        self.root_path = get_root_path()
+        self.intent_dict_path = os.path.join(self.root_path, 'query/dict', INTENT_DICT_FILE_NAME)
 
     def cut_words(self, text):
         text = self.remove_when(text)
@@ -34,34 +37,31 @@ class Router:
         # Step 2: match intent dictionary
 
         return text
-    
-    @staticmethod
-    def search_for_synonyms(word,position): ##query为关键字， position为对应的位置(prefix,suffix,both)
-        # file_path='./dict/intent_dict.csv'
-        current_dir = os.path.dirname(__file__)
-        print(current_dir)
-        input_file='dict\\intent_dict.csv'
-        file_path = os.path.join(current_dir, input_file)
-        df=pd.read_csv(file_path)
+
+    def search_for_synonyms(self, word, position):
+        # query为关键字， position为对应的位置(prefix,suffix,both)
+        df = pd.read_csv(self.intent_dict_path)
+
         word_lower = word.lower()
-        position_lower = position.lower()
-        matching_rows = df[(df['word'].str.lower() == word_lower) & (df['position'].str.lower() == position_lower)]
+        matching_rows = df[(df['word'].str.lower() == word_lower) & (df['position'] == position)]
+
+        synonyms, related = [], []
+
         # 如果找到匹配的行,提取同义词和近义词列
         if not matching_rows.empty:
             synonyms = matching_rows['synonyms'].tolist()
             related = matching_rows['related'].tolist()
-            return synonyms,related
-        else:
-            return [],[]
-        
+
+        return synonyms, related
+
 
 if __name__ == "__main__":
-    _text = "2024年美妆行业"
+    _text = "2024年一季度美妆行业"
 
     router = Router()
     # n_words = router.count_words(text)
     # print(f'{n_words}')
 
-    # print(convert_time(_text, test=True, fast=True))
-    synonyms,related=router.search_for_synonyms('AI','prefix')
-    print(synonyms,related)
+    print(convert_time(_text, test=True, fast=True))
+    synonyms, related = router.search_for_synonyms('AI', 'prefix')
+    print(synonyms, related)
