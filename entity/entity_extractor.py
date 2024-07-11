@@ -6,7 +6,7 @@ from tools.utils import get_root_path, get_uie_device, convert_entity_format
 from uie.uie_predictor import UIEPredictor
 from word_splitter.word_cutter import WordCutter
 
-SCHEMA = ['公司', '行业', '产品', '技术', '地区', '人物', '疾病', '日期', '产业']
+SCHEMA = ['公司', '行业', '产品', '技术', '地区', '人物', '疾病', '日期', '材料']
 MODEL_PATH = os.path.join(get_root_path(), 'models/entity/model_best')
 
 
@@ -63,9 +63,9 @@ class EntityExtractor:
 
 if __name__ == "__main__":
     text = "婴幼儿即食米糊"
-    # text = "森马 vs 海澜之家"
-    # text = "友望云朵洗地机"
-    text = '深圳市晶存科技是nvidia cloud partner吗'
+    #text = "森马 vs 海澜之家"
+    #text = "友望云朵洗地机"
+    text = '武汉东湖高新'
 
     entity_extractor = EntityExtractor()
     res = entity_extractor.extract(text)

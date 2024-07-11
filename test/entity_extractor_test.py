@@ -12,10 +12,7 @@ from entity.entity_extractor import EntityExtractor
 
 entity = EntityExtractor()
 # 测试数据 #hhh
-df = pd.read_csv('./data/query_validation_label_v1.csv')
-
-
-# df = df[:10]
+df = pd.read_csv('./data/query_validation_label_v3.csv')
 
 
 class EntityRecognitionError(Exception):
