@@ -1,6 +1,3 @@
-import sys
-project_root ="F:\\inter\\nlp_test"
-sys.path.append(project_root)
 import gensim
 import pandas as pd
 from tools import utils
@@ -56,7 +53,7 @@ class synonyms:
         path3 = os.path.join(root_path, 'models/vector','tencent-ailab-embedding-zh-d100-v0.2.0-s.bin')
         model1 = gensim.models.Word2Vec.load(path1)
         model2 = gensim.models.Word2Vec.load(path2)
-        model3 = KeyedVectors.load("F:\\inter\\nlp_test\\models\\vector\\tencent-ailab-embedding-zh-d200-v0.2.0-s.bin") 
+        model3 = KeyedVectors.load(path3) 
         df = pd.read_csv(input_file)
         df[model1_name] = ''
         df[model2_name] = ''
