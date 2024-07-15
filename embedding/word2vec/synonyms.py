@@ -33,7 +33,6 @@ class synonyms:
 
     @staticmethod
     def find_similar_words_with_filtering(model, test_words,flag):
-        word_cutter = WordCutter()
         filtered_res = []
         try:
             if flag:
@@ -41,7 +40,6 @@ class synonyms:
             else:
                 res=model.most_similar(test_words, topn=20)
             for i in range(len(res)):
-                if test_words not in word_cutter.cut(res[i][0]):
                     filtered_res.append(res[i][0])
         except KeyError:
             filtered_res = []
@@ -80,13 +78,15 @@ class synonyms:
         df2 = pd.read_csv(input_file_llm)
         merged_df = pd.concat([df1, df2], ignore_index=True)
         merged_df = merged_df.drop_duplicates(subset='textwords')
-        # merged_df['merged_cols'] = ''
         cols_to_merge = ['word2vec_baike','word2vec_wx','word2vec_tencent','llm(gpt-4o)']
         merged_df['merged_cols'] = merged_df[cols_to_merge].apply(lambda row: [self.extract_from_string(str(row[col])) for col in cols_to_merge], axis=1)
         for i in range(len(merged_df['merged_cols'])):
             flat_list = []
             for sublist in merged_df['merged_cols'][i]:
-                flat_list.extend(sublist)
+                if sublist is not None:
+                    flat_list.extend(sublist)
+                else:
+                    pass
             for j in range(len(flat_list)):
                 try:
                     if len(word_cutter.cut(flat_list[j]))!=1:
@@ -106,8 +106,11 @@ if __name__ == '__main__':
     root_path = get_root_path()
     file_name = 'input.csv'
     outputfile_name='models_output.csv'
+    outputfile_llm='models_outputllm.csv'
     file_path = os.path.join(root_path, 'embedding/word2vec/data/input', file_name)
     outputfile_path_model=os.path.join(root_path, 'embedding/word2vec/data/output', outputfile_name)
+    outputfile_path_llm=os.path.join(root_path, 'embedding/word2vec/data/output', outputfile_llm)
+    output=os.path.join(root_path,'embedding/word2vec/data/output','output.csv')
     sy.handle_different_models(file_path,outputfile_path_model)
-    # sy.combine_remove_filter()
+    sy.combine_remove_filter(outputfile_path_model,outputfile_path_llm,output)
     print("处理已完成")
