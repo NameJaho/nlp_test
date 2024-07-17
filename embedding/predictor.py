@@ -123,8 +123,8 @@ class Predictor:
         return df
 
     @staticmethod
-    def compare_rank_best(pred_col, real_col, df, range, filter_col=None):
-    #评估模型
+    def compare_rank_best(pred_col, real_col, df, range_n, filter_col=None):
+        #评估模型
         if filter_col:
             df = df[df[filter_col] == 1]
         pos_arr = []
@@ -132,34 +132,16 @@ class Predictor:
         total_arr = []
         for name, group in df.groupby('query'):
             group = group.sort_values(by=pred_col, ascending=False)
-            
-            #降序排序(按照模型分数)
-            zero_label = (group[real_col] == 0).sum()
-            one_label = (group[real_col] == 1).sum()
-            #统计real_col 中0和1的数量
-            
-            one_predict = group.head(range)[real_col].sum()
-            zero_predict = (group.tail(range)[real_col] == 0).sum()
-            #统计前range中1的数量,后range中0的数量
 
-            if one_predict < one_label:
-                #如果range中1的数量小于real_col中1中的总数量,则需要计算.反之直接100分。
-                top_score = (one_predict/one_label)*100
+            # 统计标注中0和1的总数
+            total_label_zero_count = (group[real_col] == 0).sum()
+            total_label_one_count = (group[real_col] == 1).sum()
 
-                if one_predict == range:
-                    tail_score = 100
-                #如果range中全为1，则直接100分
+            top_n_label_one_count = (group.head(range_n)[real_col] == 1).sum()
+            tail_n_label_zero_count = (group.tail(range_n)[real_col] == 0).sum()
 
-            else:
-                top_score = 100
-
-            if zero_predict < zero_label:
-            #同理
-                tail_score = (zero_predict/zero_label)*100
-                if zero_predict == range:
-                    tail_score = 100
-            else:
-                tail_score = 100
+            top_score = (top_n_label_one_count/min(total_label_one_count, range_n))*100
+            tail_score = (tail_n_label_zero_count/min(total_label_zero_count, range_n))*100
 
             pos_arr.append(top_score)
             neg_arr.append(tail_score)
@@ -173,7 +155,7 @@ class Predictor:
         for model_name in model_names:
             arr = [model_name]
             for topn in topns:
-                pscore, nscore, tscore = self.compare_rank_best(pred_col=model_name, real_col=real_col, df=df, range=topn)
+                pscore, nscore, tscore = self.compare_rank_best(pred_col=model_name, real_col=real_col, df=df, range_n=topn)
                 arr = arr + [pscore, nscore, tscore]
             eva_df.append(arr)
         eva_names = []
