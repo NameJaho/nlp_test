@@ -9,7 +9,7 @@ import ast
 INPUT_FILE = '0626_2w4_pred_score.csv'
 OUTPUT_FILE = 'output.csv'
 MODEL_FOLDER = 'sentence_embedding'
-MODEL_NAMES = ['bge_lr4e5_0704','bge-small-zh-v1.5'] #'bge_lr4e5_0628',
+MODEL_NAMES = ['bge_lr4e5_0704','bge-small-zh-v1.5', 'bge_lr4e5_0628']
 
 
 class Predictor:
@@ -166,9 +166,9 @@ class Predictor:
 
 
 if __name__ == '__main__':
-    topns = [5,10]
+    range_list = [5, 10]
     predictor = Predictor()
     result_df = predictor.process()
     result_df = result_df.rename({"人工标注": 'label'}, axis=1)
-    result_df = predictor.get_eva_info(result_df, model_names=MODEL_NAMES, topns=topns)
+    result_df = predictor.get_eva_info(result_df, model_names=MODEL_NAMES, topns=range_list)
     result_df.to_csv(predictor.output_file_path)
