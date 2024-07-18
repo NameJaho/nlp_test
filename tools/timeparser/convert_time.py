@@ -289,4 +289,4 @@ O本周首批9只公募REITs完成线下询价，预计募资314.03亿元。 本
 
         res = convert_time(keyword, arrow.get('2022-08-13').timestamp(), test=True, fast=True)
         print(time.time() - s)
-        print(f" len: {len(res)}   {res}", )
+        print(f" len: {len(res)}   {res}" )
