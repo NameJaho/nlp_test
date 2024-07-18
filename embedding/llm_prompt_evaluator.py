@@ -1,10 +1,12 @@
 import os
+import re
+
 from tqdm import tqdm
 import pandas as pd
 from tools.utils import get_root_path
 from llms.llm import ChatLlm
 
-INPUT_FILE = "llm_prompt_evaluator_test.csv"
+INPUT_FILE = "llm_prompt_evaluator_test_v2.csv"
 OUTPUT_FILE = "llm_prompt_evaluator_output.csv"
 
 SYSTEM_PROMPT = """
@@ -30,7 +32,13 @@ class LabelEvaluator:
 
         response = str(llm.generate(user_prompt, system_prompt=SYSTEM_PROMPT))
 
-        score = eval(response)['Score']
+        response = response.replace('\n', '').replace(' ', '').replace('\'', '"')
+        print(f'{query} -> {response}')
+        score_pattern = re.findall('({"Score":.*?})', response)
+
+        score = response
+        if score_pattern:
+            score = eval(score_pattern[0])['Score']
         return score
 
     def process(self, model_list, prompt_list):
@@ -51,7 +59,7 @@ class LabelEvaluator:
                         if pd.notnull(query) and pd.notnull(doc):
                             test_score = self.score(query, doc, prompt_list[j], model_list[i])
                             llm_prompt_name = str(model_list[i]) + '+prompt' + str(j + 1)
-                            if test_score == label:
+                            if int(test_score) == int(label):
                                 accuracy_count += 1
                             df.at[index, llm_prompt_name] = test_score
                         
@@ -62,8 +70,15 @@ class LabelEvaluator:
 
 
 if __name__ == '__main__':
-    model_list = ['ds']
-    prompt_list = ['../llms/prompt/similarity_jeru_v1.txt']
+    model_list = ['ds'] # , 'doubao', 'moonshot'
+    prompt_folder = '../llms/prompt/'
+    # f'{prompt_folder}similarity_chengdu_v1.txt',
+    # f'{prompt_folder}similarity_jeru_v1.txt',
+    prompt_list = [f'{prompt_folder}similarity_jeru_v1.txt']
     le = LabelEvaluator()
     le.process(model_list, prompt_list)
     print('处理完成')
+
+    # text = '{"Score": 1}'
+    # score_pattern = re.findall('({"Score":.*?})', text)
+    # print(score_pattern)
