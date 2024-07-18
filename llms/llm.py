@@ -21,13 +21,19 @@ class ChatLlm:
         self.config.read(ini, encoding="utf-8")
         self.llm = self.init_llm(llm)
 
-    @staticmethod
-    def init_llm(llm_type):
+    def init_llm(self, llm_type):
         if llm_type.startswith("qwen2"):
             llm = Qwen2()
         # elif llm_type.startswith("qwen"):
         #     key = self.config.get(llm_type, "appid")
         #     llm = Qwen(key)
+        elif llm_type.startswith("azure"):
+            from llms.azure import Azure
+            key = self.config.get(llm_type, "key")
+            base = self.config.get(llm_type, "base")
+            engine = self.config.get(llm_type, "engine")
+            api_version = self.config.get(llm_type, "api_version")
+            llm = Azure(api_version, key, base, engine)
         elif llm_type.startswith("ds"):
             llm = DeepSeek()
         elif llm_type.startswith("doubao"):
@@ -63,7 +69,7 @@ class ChatLlm:
 
 
 if __name__ == '__main__':
-    obj = ChatLlm('doubao')
+    obj = ChatLlm('azure4o')
 
     system_prompt = """
 Use Semantic Ontology & Knowledge Graph. Think Step by Step. Step 1: Create Tagline {T} and Précis {P} from {Content} Relevant to {Query}. Step 2: Derive [FOUR] Aspect {X} Relevant to {Query} from {Content}. Be Categorical & Succinct. Step 3: Derive COMPLETE Knowledge Graph {KG} for Each {X}. Annotate {Subject}, Sentiment {S} on Syntax-Coherent Sententces of Verbatim {V}, and Extract Signifier_Term {K} from Verbatim {V} ONLY IF Available & Applicable. Step 4: Extract All Proper Name {PRN} from {Content}. Annotate Geographical_Name {GN}, Person_Name {PN}, Company_Name {CN}, Brand & Product_Name {BN}. Be Specific & Meticulous.\r\nOutput in JSON Syntax:\r\n{\r\n    \"T\": \"\",\r\n    \"P\": \"\",\r\n    \"X\": [\"\"],\r\n    \"KG\": [\r\n        {\r\n            \"X\": \"\",\r\n            \"Subject\": \"\",\r\n            \"V\": [\"\"],\r\n            \"S\": [\"\"],\r\n            \"K\": [\"\"]\r\n        },\r\n    ]\r\n    \"PRN\": {\r\n        \"GN\": [\"\"],\r\n        \"PN\": [\"\"],\r\n        \"CN\": [\"\"],\r\n        \"BN\": [\"\"],\r\n        \"Other\": [\"\"]\r\n    }\r\n}.\r\nOutput Language = 简体中文. Be Thoughtful & Exhaustive.
@@ -79,4 +85,3 @@ Q3营收同增6.03%， 维持“增持”评级公司发布三季报， 23Q1-Q3�
 
     result = obj.generate(user_prompt, system_prompt=system_prompt)
     print(f"{result}")
-
