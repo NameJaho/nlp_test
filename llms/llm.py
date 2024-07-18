@@ -8,6 +8,7 @@ from json import JSONDecodeError
 from loguru import logger
 
 from llms.deepseek import DeepSeek
+from llms.doubao import DouBao
 
 from llms.qwen_v2 import Qwen2
 
@@ -29,6 +30,10 @@ class ChatLlm:
         #     llm = Qwen(key)
         elif llm_type.startswith("ds"):
             llm = DeepSeek()
+        elif llm_type.startswith("doubao"):
+            llm = DouBao("doubao")
+        elif llm_type.startswith("moonshot"):
+            llm = DouBao("moonshot")
         else:
             raise Exception("llms type error")
         return llm
@@ -58,7 +63,7 @@ class ChatLlm:
 
 
 if __name__ == '__main__':
-    obj = ChatLlm('ds')
+    obj = ChatLlm('doubao')
 
     system_prompt = """
 Use Semantic Ontology & Knowledge Graph. Think Step by Step. Step 1: Create Tagline {T} and Précis {P} from {Content} Relevant to {Query}. Step 2: Derive [FOUR] Aspect {X} Relevant to {Query} from {Content}. Be Categorical & Succinct. Step 3: Derive COMPLETE Knowledge Graph {KG} for Each {X}. Annotate {Subject}, Sentiment {S} on Syntax-Coherent Sententces of Verbatim {V}, and Extract Signifier_Term {K} from Verbatim {V} ONLY IF Available & Applicable. Step 4: Extract All Proper Name {PRN} from {Content}. Annotate Geographical_Name {GN}, Person_Name {PN}, Company_Name {CN}, Brand & Product_Name {BN}. Be Specific & Meticulous.\r\nOutput in JSON Syntax:\r\n{\r\n    \"T\": \"\",\r\n    \"P\": \"\",\r\n    \"X\": [\"\"],\r\n    \"KG\": [\r\n        {\r\n            \"X\": \"\",\r\n            \"Subject\": \"\",\r\n            \"V\": [\"\"],\r\n            \"S\": [\"\"],\r\n            \"K\": [\"\"]\r\n        },\r\n    ]\r\n    \"PRN\": {\r\n        \"GN\": [\"\"],\r\n        \"PN\": [\"\"],\r\n        \"CN\": [\"\"],\r\n        \"BN\": [\"\"],\r\n        \"Other\": [\"\"]\r\n    }\r\n}.\r\nOutput Language = 简体中文. Be Thoughtful & Exhaustive.
