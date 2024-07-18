@@ -36,27 +36,29 @@ class LabelEvaluator:
     def process(self, model_list, prompt_list):
         accuracy = []
         df = pd.read_csv(self.input_file_path)
+        total_iterations = len(model_list) * len(prompt_list) * len(df['custom_label'])
+        with tqdm(total=total_iterations, desc='Total Progress') as pbar:
+            for i in range(len(model_list)):
+                for j in range(len(prompt_list)):
 
-        for i in range(len(model_list)):
-            for j in range(len(prompt_list)):
+                    accuracy_count = 0
 
-                accuracy_count = 0
+                    for index, row in df.iterrows():
+                        query = row['query']
+                        doc = row['doc']
+                        label = row['custom_label']
 
-                for index, row in df.iterrows():
-                    query = row['query']
-                    doc = row['doc']
-                    label = row['custom_label']
-
-                    if pd.notnull(query) and pd.notnull(doc):
-                        test_score = self.score(query, doc, prompt_list[j], model_list[i])
-                        llm_prompt_name = str(model_list[i]) + '+prompt' + str(j + 1)
-                        if test_score == label:
-                            accuracy_count += 1
-                        df.at[index, llm_prompt_name] = test_score
-
-                accuracy.append(llm_prompt_name + ':' + str((accuracy_count / len(df['custom_label'])) * 100) + '%')
-        print(accuracy)
-        df.to_csv(self.output_file_path)
+                        if pd.notnull(query) and pd.notnull(doc):
+                            test_score = self.score(query, doc, prompt_list[j], model_list[i])
+                            llm_prompt_name = str(model_list[i]) + '+prompt' + str(j + 1)
+                            if test_score == label:
+                                accuracy_count += 1
+                            df.at[index, llm_prompt_name] = test_score
+                        
+                        pbar.update(1)
+                    accuracy.append(llm_prompt_name + ':' + str((accuracy_count / len(df['custom_label'])) * 100) + '%')
+            print(accuracy)
+            df.to_csv(self.output_file_path)
 
 
 if __name__ == '__main__':
