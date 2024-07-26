@@ -149,7 +149,7 @@ CAR:
 
 
 ### 收入配置
-INCOME:
+EXPENSE:
   domain_nickname_blacklist:
     - [ '度假','国旅','出差','旅行','酒店','高端','商务' ]
   content_whitelist:
