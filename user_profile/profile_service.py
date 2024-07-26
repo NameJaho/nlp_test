@@ -117,6 +117,7 @@ def remove_biz_user(df, word_list):
 # 计算总积分
 def calculate_score(text, whitelist, blacklist, verbose=False):
     score = 0
+    keywords = []
 
     # if blacklist matched, score 0 and return
     if any(word in text for word in blacklist):
@@ -127,17 +128,18 @@ def calculate_score(text, whitelist, blacklist, verbose=False):
         weight = item['weight']
         for word_list in item['words']:
             for word in word_list:
-                if word.upper() in text.upper():
+                if word in text:
                     if verbose:
-                        print(f'*** whitelist matched:{word}')
+                        print(f'*** whitelist matched:{word}[{weight}')
                     score += weight
-
-    return score
+                    keywords.append(word)
+    return score, keywords
 
 
 def filter_by_score(df, content_whitelist, content_blacklist, threshold):
     df['text'] = df.apply(lambda x: str(x['title']) + str(x['content']) + str(x['tag_list']), axis=1)
-    df['score'] = df['text'].apply(lambda x: calculate_score(x, content_whitelist, content_blacklist))
+    df[['score', 'keywords']] = df.apply(lambda x: calculate_score(x['text'], content_whitelist, content_blacklist),
+                                         axis=1, result_type='expand')
 
     # 调节积分门槛
     df = df[df['score'] >= threshold]
@@ -148,7 +150,9 @@ def group_by_user(df):
     aggregated_df = df.groupby('user_id').agg({
         'text': lambda x: '||'.join(x),
         'nickname': 'first',
-        'score': 'first'  # note: this only return the score of first post
+        'score': 'max',  # note: this only return the score of first post
+        'keywords': lambda x: x,
+
     }).reset_index()
     return aggregated_df
 
