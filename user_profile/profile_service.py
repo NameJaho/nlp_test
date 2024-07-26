@@ -127,7 +127,7 @@ def calculate_score(text, whitelist, blacklist, verbose=False):
         weight = item['weight']
         for word_list in item['words']:
             for word in word_list:
-                if word in text:
+                if word.upper() in text.upper():
                     if verbose:
                         print(f'*** whitelist matched:{word}')
                     score += weight
