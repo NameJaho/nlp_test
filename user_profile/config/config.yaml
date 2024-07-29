@@ -180,7 +180,7 @@ POSTPARTUM:
   content_whitelist:
     - weight: 3
       words:
-        - [ "月子生活", "月子餐" ]
+        - ["月子生活", "月子餐"]
     - weight: 2
       words:
         - [ ]
