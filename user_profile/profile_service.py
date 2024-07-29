@@ -119,7 +119,7 @@ def load_data(input_file):
 
 # remove business user by global nickname blacklist
 def remove_biz_user(df, word_list):
-    df_biz_user = df[df['nickname'].apply(lambda x: any(word in x for word in word_list))]
+    df_biz_user = df[df['nickname'].apply(lambda x: any(word.upper() in x.upper() for word in word_list))]
     df_normal_user = df[~df['user_id'].isin(df_biz_user['user_id'])]
     return df_normal_user
 
@@ -138,7 +138,7 @@ def calculate_score(text, whitelist, blacklist, verbose=False):
         weight = item['weight']
         for word_list in item['words']:
             for word in word_list:
-                if word in text:
+                if word.upper() in text.upper():
                     # drop keyword which is contained by any keyword
                     if any([word in i for i in keywords]):
                         continue
