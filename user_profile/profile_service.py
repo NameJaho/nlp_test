@@ -73,6 +73,14 @@ def is_tags_only(content):
     return len(cleaned_content) == 0
 
 
+def remove_tag_list(row):
+    content = row['content']
+    tag_list = row['tag_list']
+    for tag in tag_list.split(';'):
+        content = content.replace(f"#{tag}[话题]#", '')
+    return content
+
+
 def remove_tag_only_posts(df):
     # 创建一个布尔序列，标记不仅仅包含标签的帖子
     mask = ~df['content'].apply(is_tags_only)
@@ -83,6 +91,8 @@ def remove_tag_only_posts(df):
     # 重置索引
     df_filtered = df_filtered.reset_index(drop=True)
 
+    # 移除正文中的标签
+    df_filtered['content'] = df_filtered.apply(remove_tag_list, axis=1)
     return df_filtered
 
 
