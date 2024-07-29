@@ -139,6 +139,9 @@ def calculate_score(text, whitelist, blacklist, verbose=False):
         for word_list in item['words']:
             for word in word_list:
                 if word in text:
+                    # drop keyword which is contained by any keyword
+                    if any([word in i for i in keywords]):
+                        continue
                     if verbose:
                         print(f'*** whitelist matched:{word}[{weight}')
                     score += weight
@@ -184,3 +187,7 @@ def show_all_contents(df, content_whitelist, content_blacklist):
 def get_unique_nicknames(df):
     unique_nicknames = df['nickname'].unique()
     return unique_nicknames
+
+
+if __name__ == '__main__':
+    calculate_score('什么汽车', [{'weight': 1, "words": [['汽车', '车']]}], [], verbose=True)
