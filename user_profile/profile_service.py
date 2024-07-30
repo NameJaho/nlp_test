@@ -131,7 +131,7 @@ def calculate_score(text, whitelist, blacklist, verbose=False):
 
     # if blacklist matched, score 0 and return
     if any(word in text for word in blacklist):
-        return 0
+        return 0, []
 
     # whitelist score accumulation
     for item in whitelist:
@@ -143,7 +143,7 @@ def calculate_score(text, whitelist, blacklist, verbose=False):
                     if any([word in i for i in keywords]):
                         continue
                     if verbose:
-                        print(f'*** whitelist matched:{word}[{weight}')
+                        print(f'*** whitelist matched:{word}[{weight}]')
                     score += weight
                     keywords.append(word)
     return score, keywords
