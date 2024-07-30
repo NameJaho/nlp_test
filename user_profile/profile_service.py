@@ -149,14 +149,76 @@ def calculate_score(text, whitelist, blacklist, verbose=False):
     return score, keywords
 
 
-def filter_by_score(df, content_whitelist, content_blacklist, threshold):
+def filter_by_score(df, content_whitelist, content_blacklist, threshold=None):
     df['text'] = df.apply(lambda x: str(x['title']) + str(x['content']) + str(x['tag_list']), axis=1)
-    df[['score', 'keywords']] = df.apply(lambda x: calculate_score(x['text'], content_whitelist, content_blacklist),
-                                         axis=1, result_type='expand')
+    if threshold:
+        df[['score', 'keywords']] = df.apply(lambda x: calculate_score(x['text'], content_whitelist, content_blacklist),
+                                             axis=1, result_type='expand')
+        # 调节积分门槛
+        df = df[df['score'] >= threshold]
+    else:
+        df[['score', 'keywords']] = df.apply(
+            lambda x: calculate_score_v2(x['text'], content_whitelist, content_blacklist),
+            axis=1, result_type='expand')
+        df = df[df['score'].apply(lambda x: any(i['score'] > 0 for i in x))]
+        df['score'] = df['score'].apply(lambda x: [i for i in x if i['score'] != 0])
 
-    # 调节积分门槛
-    df = df[df['score'] >= threshold]
     return df
+
+
+def calculate_score_v2(text, whitelist, blacklist, verbose=False):
+    score_list = []
+    keywords = []
+
+    # if blacklist matched, score 0 and return
+    if any(word in text for word in blacklist):
+        return [{'score': 0, 'type': ''}], []
+
+    # whitelist score accumulation
+    for item in whitelist:
+        # 非消费
+        # if item.get('weight'):
+        for type_, term in item.items():  # 'hotel',[{'weight':xx,'words':[[]]}]
+            score = 0
+            for term_ in term:
+                weight = term_['weight']
+                for word_list in term_['words']:
+                    for word in word_list:
+                        if word.upper() in text.upper():
+                            # drop keyword which is contained by any keyword
+                            if any([word in i for i in keywords]):
+                                continue
+                            if verbose:
+                                print(f'*** whitelist matched:{word}[{weight}]')
+                            score = weight if weight > score else score
+                            keywords.append(word)
+            score_list.append({'score': score, 'type': type_})
+        # else:
+        #     for type_ ,term in item.items():
+
+    return score_list, keywords
+
+
+def group_by_user_v2(df):
+    aggregated_df = df.groupby('user_id').agg({
+        'text': lambda x: '||'.join(x),
+        'nickname': 'first',
+        'score': merge_arrays,  # note: this only return the score of first post
+        'keywords': merge_kw,
+
+    }).reset_index()
+    return aggregated_df
+
+
+def merge_kw(kw):
+    merged_array = [item for sublist in kw for item in sublist]
+    return merged_array
+
+
+def merge_arrays(arrays):
+    merged_array = [item for sublist in arrays for item in sublist]
+    filtered_array = [score for score in merged_array if score['score'] > 0]
+    return filtered_array
 
 
 def group_by_user(df):
@@ -190,4 +252,171 @@ def get_unique_nicknames(df):
 
 
 if __name__ == '__main__':
-    calculate_score('什么汽车', [{'weight': 1, "words": [['汽车', '车']]}], [], verbose=True)
+    # calculate_score('什么汽车', [{'weight': 1, "words": [['汽车', '车']]}], [], verbose=True)
+    whitelist = [
+        {'hotel': [{'weight': 5,
+                    'words': [['四季酒店',
+                               '丽思卡尔顿',
+                               '文华东方',
+                               '安缦',
+                               '悦榕庄',
+                               '洲际',
+                               '半岛酒店',
+                               '瑞吉',
+                               'W酒店',
+                               '君悦',
+                               '文华东方',
+                               '宝格丽酒店']]},
+                   {'weight': 3, 'words': [['亚朵']]},
+                   {'weight': 1, 'words': [['桔子酒店', '锦江之星']]}]},
+        {'restaurant': [{'weight': 5, 'words': [['怀石料理', '米其林', '大董']]},
+                        {'weight': 3, 'words': [['黑珍珠', '毋米粥', '星巴克', 'shake shack']]},
+                        {'weight': 2, 'words': [['九毛九']]},
+                        {'weight': 1, 'words': [['兰州拉面', '千里香馄炖', '蜜雪冰城']]}]},
+        {'supermarket': [{'weight': 5,
+                          'words': [['Whole Foods', 'SKP', 'BLT', 'City Super']]},
+                         {'weight': 3, 'words': [['盒马', '七鲜', 'ALDI', 'LIDL']]}]},
+        {'brand': [{'weight': 5,
+                    'words': [['卡地亚',
+                               'Cartier',
+                               '宝格丽',
+                               '纪梵希',
+                               'Givenchy',
+                               '爱马仕',
+                               '香奈儿',
+                               'Hermes']]},
+                   {'weight': 4,
+                    'words': [['Loewe',
+                               'Celine',
+                               'Balenciaga',
+                               'Chloe',
+                               'Dior',
+                               'Versace',
+                               'Burberry',
+                               '阿玛尼',
+                               '迪奥',
+                               '菲拉格慕',
+                               '罗意威',
+                               'lululemon']]},
+                   {'weight': 3,
+                    'words': [['Coach',
+                               'Tory Burch',
+                               'MCM',
+                               '悦诗丽莎',
+                               '雅诗兰黛',
+                               '兰蔻',
+                               '耐克',
+                               '阿迪达斯',
+                               '匡威',
+                               'laprairie']]},
+                   {'weight': 2, 'words': [['优衣库', 'H&M', '娇兰佳人', '花西子', 'lamer']]},
+                   {'weight': 1, 'words': [['百雀羚']]}]}]
+    blacklist = ['业主',
+                 '蜜雪冰城隔壁',
+                 '蜜雪冰城对面',
+                 'SKP附近',
+                 'iapm',
+                 '代买',
+                 '代购',
+                 '发布会',
+                 '资讯',
+                 '合集',
+                 '看展',
+                 '街拍',
+                 '指南',
+                 '儿童照',
+                 '家居灵感',
+                 '明星',
+                 '时尚单品',
+                 '夏季穿搭',
+                 '春夏系列',
+                 '春夏穿搭',
+                 '新款穿搭',
+                 '时尚包包',
+                 '夏日穿搭',
+                 '时尚穿搭',
+                 '极简穿搭',
+                 '日常穿搭',
+                 '学穿搭',
+                 '春季穿搭',
+                 '春夏新款',
+                 '发箍推荐',
+                 '折扣分享',
+                 '高级现货',
+                 '现货秒发',
+                 '配饰分享',
+                 '香水分享',
+                 '前卫设计',
+                 '报名',
+                 '线下活动',
+                 '工作室',
+                 '秀场',
+                 '时尚博主',
+                 '流行趋势',
+                 '今日分享',
+                 'vintage',
+                 '评测',
+                 '帮您',
+                 'TED演讲',
+                 '关键词',
+                 '时髦单品',
+                 '艺术中心',
+                 '期刊',
+                 '招聘',
+                 '中的爱马仕',
+                 '中的香奈儿',
+                 '原单',
+                 '原版',
+                 '中爱马仕',
+                 '首展',
+                 '时装',
+                 '回收',
+                 '高仿',
+                 '中古',
+                 '成色',
+                 '家人们',
+                 '宝子',
+                 '99新',
+                 '公价',
+                 '拼手速',
+                 '杂志',
+                 '找我代',
+                 '闲置',
+                 '私聊',
+                 '福利价',
+                 '时尚潮流',
+                 '盘点',
+                 '全新',
+                 '爱马仕橙',
+                 '来袭',
+                 '吴磊',
+                 '林亦扬',
+                 '刘亦菲',
+                 '推荐分享',
+                 '周年',
+                 '界的爱马仕',
+                 '穿搭灵感',
+                 '壁纸',
+                 '现货喵发',
+                 '爱马仕自行车',
+                 '购买攻略',
+                 '行情',
+                 '细节实拍',
+                 '项链推荐',
+                 '项链分享']
+    threshold = [{'score': 2, 'type': 'hotel'}]
+    df = pd.read_csv('./tmp.csv')
+    # 如果是expense score 为 [{'score':3,'type':'hotel'}]
+    # threshold = [{'score': 1.2, 'type': 'hotel'}, {'score': 1.5, 'type': 'pet'}, {'score': 1.8, 'type': 'dog'}]
+    threshold_dict = {item['type']: item['score'] for item in threshold}
+    print(threshold_dict)
+    print(df[['score', 'keywords']])
+
+    # 调节积分门槛
+    # df = df[df['score'] >= threshold]
+    # 筛选 score 大于 threshold 中对应 type 的 score 的行
+
+    filtered_df = df[df['score'].apply(lambda scores: any(
+        score['type'] in threshold_dict and score['score'] > threshold_dict[score['type']] for score in eval(scores)))]
+
+    print(filtered_df)
