@@ -93,10 +93,8 @@ def remove_tag_only_posts(df):
 
     # 移除正文中的标签
     df_filtered['content'] = df_filtered.apply(remove_tag_list, axis=1)
-    # 过滤小于20的
-    df_filtered['content_length'] = df_filtered['content'].apply(len)
 
-    return df_filtered[df_filtered['content_length'] >= 20]
+    return df_filtered
 
 
 def load_data(input_file):
