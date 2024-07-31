@@ -185,17 +185,27 @@ def calculate_score_v2(text, whitelist, blacklist, verbose=False):
                 weight = term_['weight']
                 for word_list in term_['words']:
                     for word in word_list:
-                        if word.upper() in text.upper():
-                            # drop keyword which is contained by any keyword
-                            if any([word in i for i in keywords]):
-                                continue
-                            if verbose:
-                                print(f'*** whitelist matched:{word}[{weight}]')
-                            score = weight if weight > score else score
-                            keywords.append(word)
+                        if '|' not in word:
+                            if word.upper() in text.upper():
+                                # drop keyword which is contained by any keyword
+                                if any([word in i for i in keywords]):
+                                    continue
+                                if verbose:
+                                    print(f'*** whitelist matched:{word}[{weight}]')
+                                score = weight if weight > score else score
+                                keywords.append(word)
+                        else:
+                            base_word = word.split('|')[0]
+                            others = word.split('|')[1:]
+                            if base_word.upper() in text.upper() and any(i in text.upper() for i in others):
+                                if any([word in i for i in keywords]):
+                                    continue
+                                if verbose:
+                                    print(f'*** whitelist matched:{word}[{weight}]')
+                                score += weight
+                                kw = base_word + '|' + '|'.join([i for i in others if i.upper() in text.upper()])
+                                keywords.append(kw)
             score_list.append({'score': score, 'type': type_})
-        # else:
-        #     for type_ ,term in item.items():
 
     return score_list, keywords
 
