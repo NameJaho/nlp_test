@@ -5,6 +5,7 @@ from pandarallel import pandarallel
 
 pandarallel.initialize()
 
+
 def load_config(file_path):
     # 加载 YAML 配置
     with open(file_path, 'r', encoding='utf-8') as file:
@@ -99,8 +100,13 @@ def remove_tag_only_posts(df):
     return df_filtered
 
 
-def load_data(input_file):
-    df = pd.read_csv(input_file)
+def load_data(input_file, file_format='csv'):
+    if file_format == 'csv':
+        df = pd.read_csv(input_file)
+    elif file_format == 'xlsx':
+        df = pd.read_excel(input_file)
+    elif file_format == 'pkl':
+        df = pd.read_pickle(input_file)
 
     # remove duplicates
     df_dedup = df.drop_duplicates(subset=['user_id', 'content'])
