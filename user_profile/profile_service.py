@@ -272,6 +272,12 @@ def get_unique_nicknames(df):
     return unique_nicknames
 
 
+def filter_user_by_type(df_user, count):
+    df_user['unique_type'] = df_user['score'].apply(lambda x: list(set([i['type'] for i in x])))
+    df_user['type_cnt'] = df_user['unique_type'].apply(lambda x: len(x))
+    return df_user[df_user['type_cnt'] >= count]
+
+
 if __name__ == '__main__':
     # calculate_score('什么汽车', [{'weight': 1, "words": [['汽车', '车']]}], [], verbose=True)
     whitelist = [
