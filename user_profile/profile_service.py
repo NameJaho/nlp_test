@@ -1,6 +1,9 @@
 import yaml
 import re
 import pandas as pd
+from pandarallel import pandarallel
+
+pandarallel.initialize()
 
 
 def load_config(file_path):
@@ -83,7 +86,7 @@ def remove_tag_list(row):
 
 def remove_tag_only_posts(df):
     # 创建一个布尔序列，标记不仅仅包含标签的帖子
-    mask = ~df['content'].apply(is_tags_only)
+    mask = ~df['content'].parallel_apply(is_tags_only)
 
     # 使用这个掩码来过滤DataFrame
     df_filtered = df[mask]
@@ -92,13 +95,18 @@ def remove_tag_only_posts(df):
     df_filtered = df_filtered.reset_index(drop=True)
 
     # 移除正文中的标签
-    df_filtered['content'] = df_filtered.apply(remove_tag_list, axis=1)
+    df_filtered['content'] = df_filtered.parallel_apply(remove_tag_list, axis=1)
 
     return df_filtered
 
 
-def load_data(input_file):
-    df = pd.read_csv(input_file)
+def load_data(input_file, file_format='csv'):
+    if file_format == 'csv':
+        df = pd.read_csv(input_file)
+    elif file_format == 'xlsx':
+        df = pd.read_excel(input_file)
+    elif file_format == 'pkl':
+        df = pd.read_pickle(input_file)
 
     # remove duplicates
     df_dedup = df.drop_duplicates(subset=['user_id', 'content'])
@@ -120,7 +128,7 @@ def load_data(input_file):
 
 # remove business user by global nickname blacklist
 def remove_biz_user(df, word_list):
-    df_biz_user = df[df['nickname'].apply(lambda x: any(word.upper() in x.upper() for word in word_list))]
+    df_biz_user = df[df['nickname'].parallel_apply(lambda x: any(word.upper() in x.upper() for word in word_list))]
     df_normal_user = df[~df['user_id'].isin(df_biz_user['user_id'])]
     return df_normal_user
 
@@ -151,18 +159,18 @@ def calculate_score(text, whitelist, blacklist, verbose=False):
 
 
 def filter_by_score(df, content_whitelist, content_blacklist, threshold=None):
-    df['text'] = df.apply(lambda x: str(x['title']) + str(x['content']) + str(x['tag_list']), axis=1)
+    df['text'] = df.parallel_apply(lambda x: str(x['title']) + str(x['content']) + str(x['tag_list']), axis=1)
     if threshold:
-        df[['score', 'keywords']] = df.apply(lambda x: calculate_score(x['text'], content_whitelist, content_blacklist),
+        df[['score', 'keywords']] = df.parallel_apply(lambda x: calculate_score(x['text'], content_whitelist, content_blacklist),
                                              axis=1, result_type='expand')
         # 调节积分门槛
         df = df[df['score'] >= threshold]
     else:
-        df[['score', 'keywords']] = df.apply(
+        df[['score', 'keywords']] = df.parallel_apply(
             lambda x: calculate_score_v2(x['text'], content_whitelist, content_blacklist),
             axis=1, result_type='expand')
-        df = df[df['score'].apply(lambda x: any(i['score'] > 0 for i in x))]
-        df['score'] = df['score'].apply(lambda x: [i for i in x if i['score'] != 0])
+        df = df[df['score'].parallel_apply(lambda x: any(i['score'] > 0 for i in x))]
+        df['score'] = df['score'].parallel_apply(lambda x: [i for i in x if i['score'] != 0])
 
     return df
 
@@ -230,6 +238,8 @@ def merge_arrays(arrays):
     merged_array = [item for sublist in arrays for item in sublist]
     filtered_array = [score for score in merged_array if score['score'] > 0]
     return filtered_array
+
+# find tag; true or false
 
 
 def group_by_user(df):
