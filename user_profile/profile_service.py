@@ -42,10 +42,10 @@ def get_domain_nicknames_blacklist(config, domain):
     return domain_nicknames_blacklist
 
 
-def get_confuse_blacklist(config, domain):
-    domain_nicknames_blacklist_yaml = config[domain]['confuse_blacklist']
-    domain_nicknames_blacklist = concat_dict(domain_nicknames_blacklist_yaml)
-    return domain_nicknames_blacklist
+def get_ignore_blacklist(config, domain):
+    ignore_blacklist_yaml = config[domain]['ignore_blacklist']
+    ignore_blacklist = concat_dict(ignore_blacklist_yaml)
+    return ignore_blacklist
 
 
 def get_content_whitelist(config, domain='', sub_domain=''):
@@ -207,7 +207,7 @@ def calculate_score_v2(text, whitelist, blacklist, confuse_blacklist, verbose=Fa
 
                                 if any(i.upper() in near.upper() for i in confuse_blacklist):
                                     confuses = [i for i in confuse_blacklist if i.upper() in near.upper()]
-                                    print(f'***[{near}] confuses matched:{confuses} ')
+                                    print(f'***[{word}] [{near}] confuses matched:{confuses} ')
                                     continue
 
                                 # drop keyword which is contained by any keyword
@@ -225,7 +225,7 @@ def calculate_score_v2(text, whitelist, blacklist, confuse_blacklist, verbose=Fa
                                 near = text[index - 5:index + len(base_word) + 5]
                                 if any(i.upper() in near.upper() for i in confuse_blacklist):
                                     confuses = [i for i in confuse_blacklist if i.upper() in near.upper()]
-                                    print(f'###[{near}] confuses matched:{confuses} ')
+                                    print(f'###[{word}] - [{near}] confuses matched:{confuses} ')
                                     continue
 
                                 if any([word in i for i in keywords]):
@@ -296,8 +296,8 @@ def get_unique_nicknames(df):
 
 
 def filter_user_by_type(df_user, count):
-    df_user['unique_type'] = df_user['score'].apply(lambda x: list(set([i['type'] for i in x])))
-    df_user['type_cnt'] = df_user['unique_type'].apply(lambda x: len(x))
+    df_user['unique_type'] = df_user['score'].parallel_apply(lambda x: list(set([i['type'] for i in x])))
+    df_user['type_cnt'] = df_user['unique_type'].parallel_apply(lambda x: len(x))
     return df_user[df_user['type_cnt'] >= count]
 
 
@@ -466,7 +466,7 @@ if __name__ == '__main__':
     # df = df[df['score'] >= threshold]
     # 筛选 score 大于 threshold 中对应 type 的 score 的行
 
-    filtered_df = df[df['score'].apply(lambda scores: any(
+    filtered_df = df[df['score'].parallel_apply(lambda scores: any(
         score['type'] in threshold_dict and score['score'] > threshold_dict[score['type']] for score in eval(scores)))]
 
     print(filtered_df)
