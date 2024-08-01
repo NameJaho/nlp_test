@@ -222,7 +222,7 @@ def calculate_score_v2(text, whitelist, blacklist, confuse_blacklist, verbose=Fa
                             others = word.split('|')[1:]
                             if base_word.upper() in text.upper() and any(i in text.upper() for i in others):
                                 index = text.upper().find(base_word.upper())
-                                near = text[index - 5:index + len(word) + 5]
+                                near = text[index - 5:index + len(base_word) + 5]
                                 if any(i.upper() in near.upper() for i in confuse_blacklist):
                                     confuses = [i for i in confuse_blacklist if i.upper() in near.upper()]
                                     print(f'###[{near}] confuses matched:{confuses} ')
