@@ -42,6 +42,12 @@ def get_domain_nicknames_blacklist(config, domain):
     return domain_nicknames_blacklist
 
 
+def get_confuse_blacklist(config, domain):
+    domain_nicknames_blacklist_yaml = config[domain]['confuse_blacklist']
+    domain_nicknames_blacklist = concat_dict(domain_nicknames_blacklist_yaml)
+    return domain_nicknames_blacklist
+
+
 def get_content_whitelist(config, domain='', sub_domain=''):
     if sub_domain:
         cat_content_whitelist_yaml = config[domain][sub_domain]['content_whitelist']
@@ -158,16 +164,17 @@ def calculate_score(text, whitelist, blacklist, verbose=False):
     return score, keywords
 
 
-def filter_by_score(df, content_whitelist, content_blacklist, threshold=None):
+def filter_by_score(df, content_whitelist, content_blacklist, confuse_blacklist=None, threshold=None):
     df['text'] = df.parallel_apply(lambda x: str(x['title']) + str(x['content']) + str(x['tag_list']), axis=1)
     if threshold:
-        df[['score', 'keywords']] = df.parallel_apply(lambda x: calculate_score(x['text'], content_whitelist, content_blacklist),
-                                             axis=1, result_type='expand')
+        df[['score', 'keywords']] = df.parallel_apply(
+            lambda x: calculate_score(x['text'], content_whitelist, content_blacklist),
+            axis=1, result_type='expand')
         # 调节积分门槛
         df = df[df['score'] >= threshold]
     else:
         df[['score', 'keywords']] = df.parallel_apply(
-            lambda x: calculate_score_v2(x['text'], content_whitelist, content_blacklist),
+            lambda x: calculate_score_v2(x['text'], content_whitelist, content_blacklist, confuse_blacklist),
             axis=1, result_type='expand')
         df = df[df['score'].parallel_apply(lambda x: any(i['score'] > 0 for i in x))]
         df['score'] = df['score'].parallel_apply(lambda x: [i for i in x if i['score'] != 0])
@@ -175,14 +182,14 @@ def filter_by_score(df, content_whitelist, content_blacklist, threshold=None):
     return df
 
 
-def calculate_score_v2(text, whitelist, blacklist, verbose=False):
+def calculate_score_v2(text, whitelist, blacklist, confuse_blacklist, verbose=False):
     score_list = []
     keywords = []
+    confuse_blacklist = [] if confuse_blacklist is None else confuse_blacklist
 
     # if blacklist matched, score 0 and return
     if any(word in text for word in blacklist):
         return [{'score': 0, 'type': ''}], []
-
     # whitelist score accumulation
     for item in whitelist:
         # 非消费
@@ -195,6 +202,14 @@ def calculate_score_v2(text, whitelist, blacklist, verbose=False):
                     for word in word_list:
                         if '|' not in word:
                             if word.upper() in text.upper():
+                                index = text.upper().find(word.upper())
+                                near = text[index - 5:index + len(word) + 5]
+
+                                if any(i.upper() in near.upper() for i in confuse_blacklist):
+                                    confuses = [i for i in confuse_blacklist if i.upper() in near.upper()]
+                                    print(f'***[{near}] confuses matched:{confuses} ')
+                                    continue
+
                                 # drop keyword which is contained by any keyword
                                 if any([word in i for i in keywords]):
                                     continue
@@ -206,11 +221,16 @@ def calculate_score_v2(text, whitelist, blacklist, verbose=False):
                             base_word = word.split('|')[0]
                             others = word.split('|')[1:]
                             if base_word.upper() in text.upper() and any(i in text.upper() for i in others):
+                                index = text.upper().find(word.upper())
+                                near = text[index - 5:index + len(word) + 5]
+                                if any(i.upper() in near.upper() for i in confuse_blacklist):
+                                    continue
+
                                 if any([word in i for i in keywords]):
                                     continue
                                 if verbose:
                                     print(f'*** whitelist matched:{word}[{weight}]')
-                                score += weight
+                                score = weight if weight > score else score
                                 kw = base_word + '|' + '|'.join([i for i in others if i.upper() in text.upper()])
                                 keywords.append(kw)
             score_list.append({'score': score, 'type': type_})
@@ -238,6 +258,7 @@ def merge_arrays(arrays):
     merged_array = [item for sublist in arrays for item in sublist]
     filtered_array = [score for score in merged_array if score['score'] > 0]
     return filtered_array
+
 
 # find tag; true or false
 
