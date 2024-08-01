@@ -1,6 +1,8 @@
 import yaml
 import re
 import pandas as pd
+import itertools
+
 from pandarallel import pandarallel
 
 pandarallel.initialize()
@@ -42,8 +44,8 @@ def get_domain_nicknames_blacklist(config, domain):
     return domain_nicknames_blacklist
 
 
-def get_confuse_blacklist(config, domain):
-    domain_nicknames_blacklist_yaml = config[domain]['confuse_blacklist']
+def get_ignore_blacklist(config, domain):
+    domain_nicknames_blacklist_yaml = config[domain]['ignore_blacklist']
     domain_nicknames_blacklist = concat_dict(domain_nicknames_blacklist_yaml)
     return domain_nicknames_blacklist
 
@@ -53,6 +55,12 @@ def get_content_whitelist(config, domain='', sub_domain=''):
         cat_content_whitelist_yaml = config[domain][sub_domain]['content_whitelist']
     else:
         cat_content_whitelist_yaml = config[domain]['content_whitelist']
+        for category in cat_content_whitelist_yaml:
+            if category.get('weight'):
+                break
+            for key, items in category.items():
+                for item in items:
+                    item['words'] = list(itertools.chain.from_iterable(item['words']))
     return cat_content_whitelist_yaml
 
 
@@ -164,7 +172,7 @@ def calculate_score(text, whitelist, blacklist, verbose=False):
     return score, keywords
 
 
-def filter_by_score(df, content_whitelist, content_blacklist, confuse_blacklist=None, threshold=None):
+def filter_by_score(df, content_whitelist, content_blacklist, ignore_blacklist=None, threshold=None):
     df['text'] = df.parallel_apply(lambda x: str(x['title']) + str(x['content']) + str(x['tag_list']), axis=1)
     if threshold:
         df[['score', 'keywords']] = df.parallel_apply(
@@ -174,7 +182,7 @@ def filter_by_score(df, content_whitelist, content_blacklist, confuse_blacklist=
         df = df[df['score'] >= threshold]
     else:
         df[['score', 'keywords']] = df.parallel_apply(
-            lambda x: calculate_score_v2(x['text'], content_whitelist, content_blacklist, confuse_blacklist),
+            lambda x: calculate_score_v2(x['text'], content_whitelist, content_blacklist, ignore_blacklist),
             axis=1, result_type='expand')
         df = df[df['score'].parallel_apply(lambda x: any(i['score'] > 0 for i in x))]
         df['score'] = df['score'].parallel_apply(lambda x: [i for i in x if i['score'] != 0])
@@ -182,59 +190,63 @@ def filter_by_score(df, content_whitelist, content_blacklist, confuse_blacklist=
     return df
 
 
-def calculate_score_v2(text, whitelist, blacklist, confuse_blacklist, verbose=False):
+def filter_ignore_list(text, word, ignore_blacklist, keywords, weight, verbose):
+    index = text.upper().find(word.upper())
+    near = text[index - 5:index + len(word) + 5]
+
+    if any(i.upper() in near.upper() for i in ignore_blacklist):
+        # confuses = [i for i in ignore_blacklist if i.upper() in near.upper()]
+        print(f'***[{word}] [{near}] ')
+        return False
+
+        # drop keyword which is contained by any keyword
+    if any([word in i for i in keywords]):
+        return False
+
+    if verbose:
+        print(f'*** whitelist matched:{word}[{weight}]')
+    # return word, score
+    return True
+
+
+def calculate_score_v2(text, whitelist, blacklist, ignore_blacklist, verbose=False):
     score_list = []
     keywords = []
-    confuse_blacklist = [] if confuse_blacklist is None else confuse_blacklist
+    ignore_blacklist = [] if ignore_blacklist is None else ignore_blacklist
 
     # if blacklist matched, score 0 and return
     if any(word in text for word in blacklist):
         return [{'score': 0, 'type': ''}], []
+
     # whitelist score accumulation
     for item in whitelist:
         # 非消费
-        # if item.get('weight'):
         for type_, term in item.items():  # 'hotel',[{'weight':xx,'words':[[]]}]
             score = 0
             for term_ in term:
                 weight = term_['weight']
-                for word_list in term_['words']:
-                    for word in word_list:
-                        if '|' not in word:
-                            if word.upper() in text.upper():
-                                index = text.upper().find(word.upper())
-                                near = text[index - 5:index + len(word) + 5]
+                for word in term_['words']:
+                    base_word = word.split('|')
+                    if base_word[0].upper() not in text.upper():
+                        continue
 
-                                if any(i.upper() in near.upper() for i in confuse_blacklist):
-                                    confuses = [i for i in confuse_blacklist if i.upper() in near.upper()]
-                                    print(f'***[{near}] confuses matched:{confuses} ')
-                                    continue
+                    if len(base_word) == 1:
+                        flag = filter_ignore_list(text, word, ignore_blacklist, keywords, weight, verbose)
+                        if not flag:
+                            continue
 
-                                # drop keyword which is contained by any keyword
-                                if any([word in i for i in keywords]):
-                                    continue
-                                if verbose:
-                                    print(f'*** whitelist matched:{word}[{weight}]')
-                                score = weight if weight > score else score
-                                keywords.append(word)
-                        else:
-                            base_word = word.split('|')[0]
-                            others = word.split('|')[1:]
-                            if base_word.upper() in text.upper() and any(i in text.upper() for i in others):
-                                index = text.upper().find(base_word.upper())
-                                near = text[index - 5:index + len(base_word) + 5]
-                                if any(i.upper() in near.upper() for i in confuse_blacklist):
-                                    confuses = [i for i in confuse_blacklist if i.upper() in near.upper()]
-                                    print(f'###[{near}] confuses matched:{confuses} ')
-                                    continue
+                        score = weight if weight > score else score
+                        keywords.append(word)
+                    else:
+                        others = base_word[1:]
+                        if any(i in text.upper() for i in others):
+                            flag = filter_ignore_list(text, word, ignore_blacklist, keywords, weight, verbose)
+                            if not flag:
+                                continue
 
-                                if any([word in i for i in keywords]):
-                                    continue
-                                if verbose:
-                                    print(f'*** whitelist matched:{word}[{weight}]')
-                                score = weight if weight > score else score
-                                kw = base_word + '|' + '|'.join([i for i in others if i.upper() in text.upper()])
-                                keywords.append(kw)
+                            score = weight if weight > score else score
+                            kw = base_word[0] + '|' + '|'.join([i for i in others if i.upper() in text.upper()])
+                            keywords.append(kw)
             score_list.append({'score': score, 'type': type_})
 
     return score_list, keywords
@@ -304,38 +316,146 @@ def filter_user_by_type(df_user, count):
 if __name__ == '__main__':
     # calculate_score('什么汽车', [{'weight': 1, "words": [['汽车', '车']]}], [], verbose=True)
     whitelist = [
-        {'hotel': [{'weight': 5,
-                    'words': [['四季酒店',
-                               '丽思卡尔顿',
-                               '文华东方',
-                               '安缦',
+        {'hotel': [{'weight': 10,
+                    'words': [
+                        ['四季酒店', '丽思卡尔顿隐世', '文华东方', '安缦', '悦榕庄', '文华东方', '宝格丽酒店'],
+                        ['隐世酒店', '六善', '璞富腾'],
+                        ['崇左秘境丽世度假村', '碧玥酒店', '东驿敦煌酒店', '响沙湾莲花酒店']]},
+                   {'weight': 8,
+                    'words': [['洲际', '半岛酒店', '瑞吉', 'W酒店', '君悦'],
+                              ['丽思卡尔顿',
+                               '艾迪逊',
+                               'JW万豪',
+                               '华尔道夫',
+                               '康莱德',
+                               '莱佛士',
                                '悦榕庄',
-                               '洲际',
-                               '半岛酒店',
-                               '瑞吉',
-                               'W酒店',
-                               '君悦',
-                               '文华东方',
-                               '宝格丽酒店']]},
-                   {'weight': 3, 'words': [['亚朵']]},
-                   {'weight': 1, 'words': [['桔子酒店', '锦江之星']]}]},
-        {'restaurant': [{'weight': 5, 'words': [['怀石料理', '米其林', '大董']]},
-                        {'weight': 3, 'words': [['黑珍珠', '毋米粥', '星巴克', 'shake shack']]},
-                        {'weight': 2, 'words': [['九毛九']]},
+                               '索菲特传奇',
+                               '费尔蒙',
+                               '宋品',
+                               '嘉佩乐'],
+                              ['四季酒店',
+                               '瑰丽',
+                               '美高梅',
+                               '香樟华苹',
+                               '博舍',
+                               '安麓',
+                               '璞丽',
+                               '钓鱼台酒店',
+                               '尼依格罗',
+                               'Club Med',
+                               'ClubMed',
+                               '柏联',
+                               '松赞'],
+                              ['画山云舍', '悦榕庄', '糖舍|度假酒店', '潼乡|度假酒店', '在野宿集']]},
+                   {'weight': 6,
+                    'words': [['万怡',
+                               '德尔塔',
+                               'AC酒店',
+                               '福朋喜来登',
+                               '皇冠假日',
+                               'VOCO',
+                               '华邑',
+                               '逸衡',
+                               '凯悦尚萃',
+                               '凯悦悠选',
+                               '美爵',
+                               '美居',
+                               '诗铂',
+                               '美憬阁'],
+                              ['诺富特', '希尔顿逸林', '希尔顿花园', '施柏阁', '美居', '美伦美奂', '花间堂',
+                               '万达文华', '万达嘉华'],
+                              ['白公馆', '云舞|度假酒店|阳朔', '河畔|度假酒店|阳朔', '水印长廊|酒店']]},
+                   {'weight': 4, 'words': [['亚朵']]},
+                   {'weight': 3,
+                    'words': [['喜达屋',
+                               'Moxy',
+                               '普罗蒂亚',
+                               '万枫',
+                               '雅乐轩',
+                               '源宿',
+                               '假日酒店',
+                               '智选假日',
+                               '逸扉',
+                               '凯悦嘉轩',
+                               '希尔顿欢朋',
+                               '桔子水晶',
+                               '漫心'],
+                              ['华美达', '亚朵', '万达嘉华']]},
+                   {'weight': 1,
+                    'words': [['锦江之星'],
+                              ['凯悦嘉寓',
+                               '宜必思',
+                               '惠庭',
+                               '汉庭',
+                               '星程',
+                               '海友',
+                               '汉庭优佳',
+                               '如家',
+                               'Days Inn',
+                               '万达锦华',
+                               '希岸deluxe',
+                               '丽枫',
+                               '七天|酒店',
+                               '新维也纳'],
+                              ['维也纳国际',
+                               '维纳斯皇家',
+                               '凯里亚德',
+                               '锦江都城',
+                               '喆啡',
+                               '云居',
+                               '潮漫酒店',
+                               '康铂',
+                               '白玉兰',
+                               '欧瑕.地中海',
+                               '欧瑕地中海',
+                               '郁锦香酒店',
+                               '丽柏'],
+                              ['丽怡',
+                               'ZMAX满兮',
+                               '非繁城品',
+                               '7天优品',
+                               '格林豪泰',
+                               '如家精选',
+                               '速8',
+                               '都市118',
+                               '尚客优',
+                               '富驿时尚',
+                               '铂涛特品',
+                               '瑞享',
+                               '99旅馆',
+                               '铂尔曼'],
+                              ['美豪', '汉庭', '原拓', '城市便捷']]}]},
+        {'restaurant': [{'weight': 10, 'words': [['怀石料理', '米其林', '大董']]},
+                        {'weight': 7, 'words': [['毋米粥', '星巴克', 'shake shack', 'Wagas']]},
+                        {'weight': 3, 'words': [['九毛九']]},
                         {'weight': 1, 'words': [['兰州拉面', '千里香馄炖', '蜜雪冰城']]}]},
-        {'supermarket': [{'weight': 5,
-                          'words': [['Whole Foods', 'SKP', 'BLT', 'City Super']]},
-                         {'weight': 3, 'words': [['盒马', '七鲜', 'ALDI', 'LIDL']]}]},
-        {'brand': [{'weight': 5,
+        {'supermarket': [{'weight': 8,
+                          'words': [['Whole Foods', 'BLT', 'City Super']]},
+                         {'weight': 5, 'words': [['盒马', '七鲜', 'ALDI', 'LIDL']]}]},
+        {'brand': [{'weight': 10, 'words': [['爱马仕｜包｜鞋', 'Hermes｜包｜鞋']]},
+                   {'weight': 9,
                     'words': [['卡地亚',
                                'Cartier',
                                '宝格丽',
                                '纪梵希',
                                'Givenchy',
-                               '爱马仕',
-                               '香奈儿',
-                               'Hermes']]},
-                   {'weight': 4,
+                               '香奈儿｜包|鞋',
+                               '巴黎世家',
+                               'Balenciaga',
+                               '杰尼亚',
+                               'Zegna',
+                               '博柏利',
+                               'Burberry',
+                               'LV|包',
+                               '普拉达',
+                               'Prada',
+                               'Bottega veneta',
+                               'Rimowa ',
+                               '普拉达',
+                               'Prada'],
+                              ['华伦天奴', 'Valentino', '古驰', 'Gucci']]},
+                   {'weight': 8,
                     'words': [['Loewe',
                                'Celine',
                                'Balenciaga',
@@ -347,20 +467,183 @@ if __name__ == '__main__':
                                '迪奥',
                                '菲拉格慕',
                                '罗意威',
-                               'lululemon']]},
-                   {'weight': 3,
-                    'words': [['Coach',
+                               'lululemon',
+                               'laprairie'],
+                              ['浪凡',
+                               'Lanvin',
+                               'HOGAN',
+                               '沙驰',
+                               'Satchi',
+                               'Michael Kors',
+                               '其乐',
+                               'Clarks',
+                               '爱步',
+                               'Ecco',
+                               'Hush Huppies',
+                               '暇步士',
+                               '73小时',
+                               '阿玛尼',
+                               'armani',
+                               'Y-3',
+                               '范思哲',
+                               'Versace'],
+                              ['Lululemon', 'Lulu lemon', '始祖鸟', 'Arcteryx']]},
+                   {'weight': 6,
+                    'words': [['爱马仕｜丝巾|香水'],
+                              ['Coach',
+                               '蔻驰',
                                'Tory Burch',
+                               '汤丽柏琦',
                                'MCM',
                                '悦诗丽莎',
                                '雅诗兰黛',
                                '兰蔻',
                                '耐克',
+                               'Nike',
                                '阿迪达斯',
+                               'Adidas',
                                '匡威',
-                               'laprairie']]},
-                   {'weight': 2, 'words': [['优衣库', 'H&M', '娇兰佳人', '花西子', 'lamer']]},
-                   {'weight': 1, 'words': [['百雀羚']]}]}]
+                               'lamer',
+                               'Lacoste',
+                               '健乐士',
+                               'Geox',
+                               '乐步',
+                               'Rockport',
+                               '亚瑟士',
+                               'Asics',
+                               '斐乐',
+                               'Fila',
+                               '萨洛蒙',
+                               'Salomon'],
+                              ['北面',
+                               '鬼塚虎',
+                               'Onitsuka',
+                               '迪桑特',
+                               'Descente',
+                               '万宝龙',
+                               'Montblanc',
+                               '途明',
+                               'Tumi',
+                               '新秀丽',
+                               'Samsonite',
+                               '迪赛',
+                               'Diesel',
+                               '昂跑',
+                               'UGG']]},
+                   {'weight': 5,
+                    'words': [['迪奥｜丝巾|香水', '香奈儿｜丝巾|香水'],
+                              ['优衣库',
+                               '匡威',
+                               'Converse',
+                               '迪卡侬',
+                               'Decathlon',
+                               '无印良品',
+                               '添柏岚',
+                               'Timberland',
+                               '百思图',
+                               '思加图',
+                               '接吻猫',
+                               '星期六',
+                               'MCM',
+                               '哥伦比亚',
+                               'Columbia',
+                               '百丽']]},
+                   {'weight': 4,
+                    'words': [['H&M',
+                               '娇兰佳人',
+                               '花西子',
+                               '大嘴猴',
+                               '莫斯奇诺',
+                               'Moschino',
+                               '李宁',
+                               'Lining',
+                               '安踏',
+                               'Anta',
+                               '美津浓',
+                               'Mizuno',
+                               '迪桑娜',
+                               'CHARLES&KEITH']]},
+                   {'weight': 3,
+                    'words': [['斯凯奇',
+                               '达芙妮',
+                               '卓诗尼',
+                               '金利来',
+                               '锐步',
+                               'Reebok',
+                               '彪马',
+                               'Puma',
+                               '乐途',
+                               'Lotto',
+                               '不莱玫']]},
+                   {'weight': 2,
+                    'words': [['回力',
+                               '奥古狮登',
+                               '三福',
+                               '人本｜鞋',
+                               '木林森',
+                               '奥康',
+                               '卡帝乐',
+                               '南极人',
+                               '花路仕',
+                               '海澜之家',
+                               '意尔康',
+                               '足力健',
+                               '稻草人|鞋',
+                               '花花公子',
+                               'ULDUM',
+                               '特步',
+                               'Xtep',
+                               '鸿星尔克',
+                               'Erke',
+                               '匹克',
+                               'Peak',
+                               '361度',
+                               '卡帕',
+                               'Kappa']]},
+                   {'weight': 1, 'words': [['百雀羚']]}]},
+        {'milk': [{'weight': 7, 'words': [['朝日唯品', 'a2']]},
+                  {'weight': 6,
+                   'words': [['香满楼',
+                              '简爱酸奶',
+                              '金典',
+                              '悦鲜活',
+                              '认养一头牛',
+                              '北海牧场',
+                              '卡士',
+                              '特仑苏',
+                              '优诺',
+                              '吾岛',
+                              '圣牧',
+                              '新希望|奶']]},
+                  {'weight': 5,
+                   'words': [['伊利',
+                              '蒙牛',
+                              '每日鲜语',
+                              '君乐宝',
+                              '简醇',
+                              '天润',
+                              '光明|奶',
+                              '德亚',
+                              '三元|奶',
+                              '欧亚|奶']]},
+                  {'weight': 1, 'words': [['燕塘', '花花牛', '真零', '兰格格', '西域春', '味全']]}]},
+        {'bicycle': [{'weight': 10,
+                      'words': [['崔克',
+                                 'Specialized',
+                                 'Brompton',
+                                 '小布|自行车|山地车|公路车|单车',
+                                 '闪电|自行车|山地车|公路车|单车']]},
+                     {'weight': 6,
+                      'words': [['捷安特',
+                                 '迪卡侬|自行车|山地车|公路车|单车',
+                                 '佳沃|自行车|山地车|公路车|单车',
+                                 '喜德盛|自行车|山地车|公路车|单车',
+                                 '大行|自行车|山地车|单车｜折叠']]},
+                     {'weight': 2,
+                      'words': [['凤凰|自行车|山地车|公路车|单车',
+                                 '永久|自行车|山地车|公路车|单车',
+                                 '菲利普|自行车|山地车|公路车|单车',
+                                 '飞鸽|自行车|山地车|公路车|单车']]}]}]
     blacklist = ['业主',
                  '蜜雪冰城隔壁',
                  '蜜雪冰城对面',
@@ -413,11 +696,8 @@ if __name__ == '__main__':
                  '艺术中心',
                  '期刊',
                  '招聘',
-                 '中的爱马仕',
-                 '中的香奈儿',
                  '原单',
                  '原版',
-                 '中爱马仕',
                  '首展',
                  '时装',
                  '回收',
@@ -437,36 +717,24 @@ if __name__ == '__main__':
                  '时尚潮流',
                  '盘点',
                  '全新',
-                 '爱马仕橙',
                  '来袭',
                  '吴磊',
                  '林亦扬',
                  '刘亦菲',
                  '推荐分享',
                  '周年',
-                 '界的爱马仕',
                  '穿搭灵感',
                  '壁纸',
                  '现货喵发',
-                 '爱马仕自行车',
                  '购买攻略',
                  '行情',
                  '细节实拍',
                  '项链推荐',
-                 '项链分享']
-    threshold = [{'score': 2, 'type': 'hotel'}]
-    df = pd.read_csv('./tmp.csv')
-    # 如果是expense score 为 [{'score':3,'type':'hotel'}]
-    # threshold = [{'score': 1.2, 'type': 'hotel'}, {'score': 1.5, 'type': 'pet'}, {'score': 1.8, 'type': 'dog'}]
-    threshold_dict = {item['type']: item['score'] for item in threshold}
-    print(threshold_dict)
-    print(df[['score', 'keywords']])
+                 '项链分享',
+                 '每日穿搭',
+                 '大揭密']
+    ignore_blacklist = ['隔壁', '楼下', '附近', '楼上', '旁边', '对面', '中的']
+    df = pd.read_csv('./cleanup_5w_users.csv')
 
-    # 调节积分门槛
-    # df = df[df['score'] >= threshold]
-    # 筛选 score 大于 threshold 中对应 type 的 score 的行
-
-    filtered_df = df[df['score'].apply(lambda scores: any(
-        score['type'] in threshold_dict and score['score'] > threshold_dict[score['type']] for score in eval(scores)))]
-
-    print(filtered_df)
+    df_filtered = filter_by_score(df, whitelist, blacklist, ignore_blacklist)
+    print(df_filtered[['text', 'score', 'keywords']].__len__())
