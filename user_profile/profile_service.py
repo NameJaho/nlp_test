@@ -45,9 +45,9 @@ def get_domain_nicknames_blacklist(config, domain):
 
 
 def get_ignore_blacklist(config, domain):
-    domain_nicknames_blacklist_yaml = config[domain]['ignore_blacklist']
-    domain_nicknames_blacklist = concat_dict(domain_nicknames_blacklist_yaml)
-    return domain_nicknames_blacklist
+    ignore_blacklist_yaml = config[domain]['ignore_blacklist']
+    ignore_blacklist = concat_dict(ignore_blacklist_yaml)
+    return ignore_blacklist
 
 
 def get_content_whitelist(config, domain='', sub_domain=''):
@@ -328,8 +328,8 @@ def get_unique_nicknames(df):
 
 
 def filter_user_by_type(df_user, count):
-    df_user['unique_type'] = df_user['score'].apply(lambda x: list(set([i['type'] for i in x])))
-    df_user['type_cnt'] = df_user['unique_type'].apply(lambda x: len(x))
+    df_user['unique_type'] = df_user['score'].parallel_apply(lambda x: list(set([i['type'] for i in x])))
+    df_user['type_cnt'] = df_user['unique_type'].parallel_apply(lambda x: len(x))
     return df_user[df_user['type_cnt'] >= count]
 
 
@@ -753,8 +753,8 @@ if __name__ == '__main__':
                  '项链分享',
                  '每日穿搭',
                  '大揭密']
-    ignore_blacklist = ['隔壁', '楼下', '附近', '楼上', '旁边', '对面', '中的']
-    df = pd.read_csv('./cleanup_5w_users.csv')
+    _ignore_blacklist = ['隔壁', '楼下', '附近', '楼上', '旁边', '对面', '中的']
+    _df = pd.read_csv('./cleanup_5w_users.csv')
 
-    df_filtered = filter_by_score(df, whitelist, blacklist, ignore_blacklist)
+    df_filtered = filter_by_score(_df, whitelist, blacklist, _ignore_blacklist)
     print(df_filtered[['text', 'score', 'keywords']].__len__())
