@@ -172,24 +172,6 @@ def calculate_score(text, whitelist, blacklist, verbose=False):
     return score, keywords
 
 
-def filter_by_score(df, content_whitelist, content_blacklist, confuse_blacklist=None, threshold=None):
-    df['text'] = df.parallel_apply(lambda x: str(x['title']) + str(x['content']) + str(x['tag_list']), axis=1)
-    if threshold:
-        df[['score', 'keywords']] = df.parallel_apply(
-            lambda x: calculate_score(x['text'], content_whitelist, content_blacklist),
-            axis=1, result_type='expand')
-        # 调节积分门槛
-        df = df[df['score'] >= threshold]
-    else:
-        df[['score', 'keywords']] = df.parallel_apply(
-            lambda x: calculate_score_v2(x['text'], content_whitelist, content_blacklist, ignore_blacklist),
-            axis=1, result_type='expand')
-        df = df[df['score'].parallel_apply(lambda x: any(i['score'] > 0 for i in x))]
-        df['score'] = df['score'].parallel_apply(lambda x: [i for i in x if i['score'] != 0])
-
-    return df
-
-
 def filter_ignore_list(text, word, ignore_blacklist, keywords, weight, verbose):
     index = text.upper().find(word.upper())
     near = text[index - 5:index + len(word) + 5]
@@ -207,6 +189,24 @@ def filter_ignore_list(text, word, ignore_blacklist, keywords, weight, verbose):
         print(f'*** whitelist matched:{word}[{weight}]')
     # return word, score
     return True
+
+
+def filter_by_score(df, content_whitelist, content_blacklist, threshold=None, ignore_blacklist=None):
+    df['text'] = df.parallel_apply(lambda x: str(x['title']) + str(x['content']) + str(x['tag_list']), axis=1)
+    if threshold:
+        df[['score', 'keywords']] = df.parallel_apply(
+            lambda x: calculate_score(x['text'], content_whitelist, content_blacklist),
+            axis=1, result_type='expand')
+        # 调节积分门槛
+        df = df[df['score'] >= threshold]
+    else:
+        df[['score', 'keywords']] = df.parallel_apply(
+            lambda x: calculate_score_v2(x['text'], content_whitelist, content_blacklist, ignore_blacklist),
+            axis=1, result_type='expand')
+        df = df[df['score'].parallel_apply(lambda x: any(i['score'] > 0 for i in x))]
+        df['score'] = df['score'].parallel_apply(lambda x: [i for i in x if i['score'] != 0])
+
+    return df
 
 
 def calculate_score_v2(text, whitelist, blacklist, ignore_blacklist, verbose=False):
@@ -733,8 +733,8 @@ if __name__ == '__main__':
                  '项链分享',
                  '每日穿搭',
                  '大揭密']
-    ignore_blacklist = ['隔壁', '楼下', '附近', '楼上', '旁边', '对面', '中的']
-    df = pd.read_csv('./cleanup_5w_users.csv')
+    _ignore_blacklist = ['隔壁', '楼下', '附近', '楼上', '旁边', '对面', '中的']
+    _df = pd.read_csv('./cleanup_5w_users.csv')
 
-    df_filtered = filter_by_score(df, whitelist, blacklist, ignore_blacklist)
+    df_filtered = filter_by_score(_df, whitelist, blacklist, _ignore_blacklist)
     print(df_filtered[['text', 'score', 'keywords']].__len__())
