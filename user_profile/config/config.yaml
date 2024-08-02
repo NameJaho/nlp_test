@@ -248,16 +248,17 @@ EXPENSE:
           - [ '怀石料理','米其林','大董' ]
       - weight: 7
         words:
-          - [ '毋米粥','星巴克','shake shack','Wagas' ]
+          - [ '毋米粥','星巴克','shake shack','昔客堡','Wagas','醉西湖·臻宴','箸福','苏面坊','西赞超级碗','鲜语Gaga','鹿角记','兰巴赫','西引手作意面','尚一汤','墨纪','农畉','小厨娘淮扬菜']
+          - ['玛尚诺','marzano','食为鲜','粥鲜生','吾宴高汤砂锅粥','香越山','山崎家日式蛋包饭','饱李李','Element fresh','107汉堡','乌巢比萨','仙小林']
       - weight: 3
         words:
-          - [ '九毛九','太二','海底捞','瑞幸' ]
+          - [ '九毛九','太二','海底捞','瑞幸','蟹伙计' ]
       - weight: 3
         words:
-          - [ '塔斯汀','华莱士','尊宝披萨','德克士' ]
+          - [ '塔斯汀','华莱士','尊宝披萨','德克士','蜜雪冰城' ]
       - weight: 1
         words:
-          - [ '兰州拉面','千里香馄炖','蜜雪冰城','曼玲粥铺' ]
+          - [ '兰州拉面','千里香馄炖','曼玲粥铺','吉祥馄饨','和善园','','','','','','','','','','','' ]
 
     - supermarket:
       - weight: 8
@@ -273,8 +274,8 @@ EXPENSE:
           - [ '爱马仕|包|鞋','Hermes|包|鞋' ]
       - weight: 9
         words:
-          - [ '卡地亚','Cartier','宝格丽','纪梵希','Givenchy','香奈儿|包|鞋','巴黎世家','Balenciaga','杰尼亚','Zegna','博柏利','Burberry','LV|包','普拉达','Prada','Bottega veneta','Rimowa ','普拉达','Prada' ]
-          - [ '华伦天奴','Valentino','古驰','Gucci' ]
+          - [ '卡地亚','Cartier','纪梵希','Givenchy','香奈儿|包|鞋','巴黎世家','Balenciaga','杰尼亚','Zegna','博柏利','Burberry','LV|包','普拉达','Prada','Bottega veneta','Rimowa ','普拉达','Prada' ]
+          - [ '华伦天奴','Valentino','古驰','Gucci','宝格丽','Bvlgari' ]
       - weight: 8
         words:
           - [ 'Loewe','Celine','Balenciaga','Chloe','Dior','Versace','Burberry','阿玛尼','迪奥','菲拉格慕','罗意威','lululemon' ]
@@ -284,7 +285,7 @@ EXPENSE:
         words:
           - [ '爱马仕|丝巾|香水' ]
           - [ 'Coach','蔻驰','Tory Burch','汤丽柏琦','MCM','悦诗丽莎','耐克','Nike','阿迪达斯','Adidas','匡威','Lacoste','健乐士','Geox','乐步','Rockport','亚瑟士','Asics','斐乐','Fila','萨洛蒙','Salomon' ]
-          - [ '北面','鬼塚虎','Onitsuka','迪桑特','Descente','万宝龙','Montblanc','途明','Tumi','新秀丽','Samsonite','迪赛','Diesel','昂跑','UGG','宝格丽','Bvlgari' ]
+          - [ '北面','鬼塚虎','Onitsuka','迪桑特','Descente','万宝龙','Montblanc','途明','Tumi','新秀丽','Samsonite','迪赛','Diesel','昂跑','UGG' ]
       - weight: 5
         words:
           - [ '迪奥|丝巾|香水','香奈儿|丝巾|香水' ]
