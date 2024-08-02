@@ -172,26 +172,7 @@ def calculate_score(text, whitelist, blacklist, verbose=False):
     return score, keywords
 
 
-def filter_ignore_list(text, word, ignore_blacklist, keywords, weight, verbose):
-    index = text.upper().find(word.upper())
-    near = text[index - 5:index + len(word) + 5]
-
-    if any(i.upper() in near.upper() for i in ignore_blacklist):
-        # confuses = [i for i in ignore_blacklist if i.upper() in near.upper()]
-        print(f'***[{word}] [{near}] ')
-        return False
-
-        # drop keyword which is contained by any keyword
-    if any([word in i for i in keywords]):
-        return False
-
-    if verbose:
-        print(f'*** whitelist matched:{word}[{weight}]')
-    # return word, score
-    return True
-
-
-def filter_by_score(df, content_whitelist, content_blacklist, threshold=None, ignore_blacklist=None):
+def filter_by_score(df, content_whitelist, content_blacklist, ignore_blacklist=None, threshold=None):
     df['text'] = df.parallel_apply(lambda x: str(x['title']) + str(x['content']) + str(x['tag_list']), axis=1)
     if threshold:
         df[['score', 'keywords']] = df.parallel_apply(
@@ -207,6 +188,45 @@ def filter_by_score(df, content_whitelist, content_blacklist, threshold=None, ig
         df['score'] = df['score'].parallel_apply(lambda x: [i for i in x if i['score'] != 0])
 
     return df
+
+
+def ignore_weight(text, word, ignore_blacklist, keywords, weight, verbose):
+    if verbose:
+        print(f'*** whitelist matched:{word}[{weight}]')
+
+    # drop keyword which is contained by any keyword
+    if any([word in i for i in keywords]):
+        return False
+
+    if not ignore_blacklist:
+        return True
+
+    text = text.upper()
+    word = word.upper()
+    index = text.find(word)
+    near = text[index - 5:index + len(word) + 5]
+    word_index = near.find(word)
+    word_left = word_index
+
+    word_right = word_index + len(word) + 5
+
+    pipeline_right = [near.find(i.replace('|', '').upper()) for i in ignore_blacklist if i.endswith('|')]
+    pipeline_left = [near.find(i.replace('|', '').upper()) for i in ignore_blacklist if i.startswith('|')]
+    ignore = [text.find(i.upper()) for i in ignore_blacklist if '|' not in i]
+
+    if set(pipeline_right) != {-1} and any(word_index < i < word_right for i in pipeline_right):
+        print(f'***[{near[word_left - 5:word_right]}] in pipeline right remove')
+        return False
+
+    elif set(pipeline_left) != {-1} and any(i < word_index for i in pipeline_left):
+        print(f'***[{near[word_left - 5:word_right]}] in pipeline left remove')
+        return False
+
+    if any(word_left < i < word_right for i in ignore):
+        print(f'***[{near[word_left - 5:word_right]}] near  remove')
+        return False
+
+    return True
 
 
 def calculate_score_v2(text, whitelist, blacklist, ignore_blacklist, verbose=False):
@@ -231,7 +251,7 @@ def calculate_score_v2(text, whitelist, blacklist, ignore_blacklist, verbose=Fal
                         continue
 
                     if len(base_word) == 1:
-                        flag = filter_ignore_list(text, word, ignore_blacklist, keywords, weight, verbose)
+                        flag = ignore_weight(text, word, ignore_blacklist, keywords, weight, verbose)
                         if not flag:
                             continue
 
@@ -240,7 +260,7 @@ def calculate_score_v2(text, whitelist, blacklist, ignore_blacklist, verbose=Fal
                     else:
                         others = base_word[1:]
                         if any(i in text.upper() for i in others):
-                            flag = filter_ignore_list(text, word, ignore_blacklist, keywords, weight, verbose)
+                            flag = ignore_weight(text, word, ignore_blacklist, keywords, weight, verbose)
                             if not flag:
                                 continue
 
