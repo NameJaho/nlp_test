@@ -4,7 +4,7 @@ import jieba
 from tools import utils
 
 
-WHITE_DICT = 'whitelist_v2.6.5.txt'
+WHITE_DICT = 'whitelist_v2.7.txt'
 
 
 class WordCutter:
@@ -62,11 +62,11 @@ if __name__ == '__main__':
         '张华泽大猪蹄',
         '李雪魄大猪蹄',
         '张雪皇大猪蹄',
-        '肯晚古大猪蹄',
-        '肯晚泽大猪蹄',
-        '李华泽热卤鸭货',
-        '连丰大药房',
-        '德康大药房',
+        '藤椒鸡块',
+        '日式照烧鸡百味卷',
+        '精萃水乳',
+        '透明质酸钠',
+        '【蜂狂618】欧诗漫小橘灯抗初老精华液早C晚A一体',
         '欧诗漫小橘灯',
         '欧诗漫旗舰店'
 
@@ -74,9 +74,9 @@ if __name__ == '__main__':
         ]
 
 
-    # words = ['很美', '美的', '空调', '绝美', '超美','完美']
-    # for word in words:
-    #     print(f'{word} -> {jieba.suggest_freq(word, True)}')
+    words = ['成人', '人家', '家用','咖喱鸡']
+    for word in words:
+        print(f'{word} -> {jieba.suggest_freq(word, True)}')
 
     wc = WordCutter()
     for sentence in sentences:
