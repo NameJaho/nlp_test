@@ -4,7 +4,7 @@ import jieba
 from tools import utils
 
 
-WHITE_DICT = 'white_list_v2.5.txt'
+WHITE_DICT = 'whitelist_v2.7.txt'
 
 
 class WordCutter:
@@ -16,7 +16,7 @@ class WordCutter:
     def cut(text):
         # TODO: 标点符号替换为空格，但有些特殊字符需保留，如-
         # text = re.sub('\W*', ' ', ''.join(text))
-        words = jieba.lcut(text)
+        words = jieba.cut(text, HMM=True)
         return [i for i in words if i != ' ']
 
 
@@ -45,11 +45,38 @@ if __name__ == '__main__':
         # '马尼埃里计划与她的一些布斯校友一起访问意大利的波多菲诺',
         # '发泡硅胶片',
         # '2023国潮新茶饮产业洞察报告',
-        # '运维外包',
-        # '新能源汽车 低线城市的发展',
-        '银发经济'
-        '抖品牌'
+        '绝美的',
+        '完美的很',
+        '超美的',
+        '完美的设计',
+        '完美的一切',
+        '很美的',
+        '很美的画面',
+        '美的电器',
+        '我买的是美的空调',
+        '蛋白 皮肤',
+        '泰国电话卡',
+        '广州酒家 月饼',
+        '功能性奶茶',
+        '思念虾皇饺',
+        '张华泽大猪蹄',
+        '李雪魄大猪蹄',
+        '张雪皇大猪蹄',
+        '藤椒鸡块',
+        '日式照烧鸡百味卷',
+        '精萃水乳',
+        '透明质酸钠',
+        '【蜂狂618】欧诗漫小橘灯抗初老精华液早C晚A一体',
+        '欧诗漫小橘灯',
+        '欧诗漫旗舰店'
+
+
         ]
+
+
+    words = ['成人', '人家', '家用','咖喱鸡']
+    for word in words:
+        print(f'{word} -> {jieba.suggest_freq(word, True)}')
 
     wc = WordCutter()
     for sentence in sentences:
