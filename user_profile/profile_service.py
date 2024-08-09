@@ -172,7 +172,7 @@ def calculate_score(text, whitelist, blacklist, verbose=False):
     return score, keywords
 
 
-def filter_by_score(df, content_whitelist, content_blacklist, ignore_blacklist=None, threshold=None):
+def filter_by_score(df, content_whitelist, content_blacklist, threshold=None, ignore_blacklist=None):
     df['text'] = df.parallel_apply(lambda x: str(x['title']) + str(x['content']) + str(x['tag_list']), axis=1)
     if threshold:
         df[['score', 'keywords']] = df.parallel_apply(
